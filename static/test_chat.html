@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REVA — Multilingual AI Voice Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --user-bubble: #3b82f6;
+            --reva-bubble: #1e293b;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 900px;
+            height: 92vh;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        /* Header */
+        .chat-header {
+            padding: 1.25rem 1.5rem;
+            background: rgba(15, 23, 42, 0.6);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-badge {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: white;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .header-text h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .header-text p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .status-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .score-pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .score-pill.warm {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-amber);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .score-pill.hot {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .connection-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+
+        .connection-indicator.offline {
+            background: var(--accent-red);
+            box-shadow: 0 0 10px var(--accent-red);
+        }
+
+        /* Escalation Alert Banner */
+        .escalation-banner {
+            display: none;
+            padding: 10px 16px;
+            background: rgba(239, 68, 68, 0.2);
+            border-bottom: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            font-size: 0.85rem;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* Messages Area */
+        .messages-area {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            scroll-behavior: smooth;
+        }
+
+        .message-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+        }
+
+        .message-row.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .message-row.reva {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .bubble {
+            padding: 0.9rem 1.2rem;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .message-row.user .bubble {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+
+        .message-row.reva .bubble {
+            background: var(--reva-bubble);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .metadata-bar {
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            padding: 0 4px;
+        }
+
+        .meta-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .meta-tag.groq { color: var(--accent-cyan); }
+        .meta-tag.gemini { color: var(--accent-purple); }
+
+        /* Input Area */
+        .input-area {
+            padding: 1.25rem 1.5rem;
+            background: rgba(15, 23, 42, 0.8);
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 0.9rem 1.2rem;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border: none;
+            border-radius: 14px;
+            padding: 0 1.5rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+        }
+
+        .send-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .send-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="header-title">
+                <div class="logo-badge">R</div>
+                <div class="header-text">
+                    <h1>REVA AI Assistant</h1>
+                    <p>Real Estate Lead Qualification & Property RAG</p>
+                </div>
+            </div>
+            <div class="status-area">
+                <div id="scoreBadge" class="score-pill">
+                    🎯 Score: <span id="leadScore">0</span>/100 (NEW)
+                </div>
+                <div id="connStatus" class="connection-indicator" title="Connected"></div>
+            </div>
+        </div>
+
+        <!-- Escalation Banner -->
+        <div id="escalationBanner" class="escalation-banner">
+            ⚠️ <strong>Human Escalation Triggered:</strong> A senior real estate executive has been notified to assist with this lead.
+        </div>
+
+        <!-- Messages Area -->
+        <div id="messagesArea" class="messages-area">
+            <div class="message-row reva">
+                <div class="bubble">Namaste! I am REVA, your real estate AI assistant. Looking to buy or rent a property? Tell me your preferred city, budget, or BHK configuration!</div>
+                <div class="metadata-bar">
+                    <span class="meta-tag groq">Model: System</span>
+                    <span class="meta-tag">Status: Ready</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <form id="chatForm" class="input-area">
+            <input type="text" id="userInput" class="chat-input" placeholder="Type your property requirement (e.g. 3BHK in Bangalore under 100 Lakh)..." autocomplete="off" required>
+            <button type="submit" class="send-btn">Send ➔</button>
+        </form>
+    </div>
+
+    <script>
+        const sessionId = "session_" + Math.random().toString(36).substring(2, 10);
+        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${sessionId}`;
+
+        const messagesArea = document.getElementById("messagesArea");
+        const chatForm = document.getElementById("chatForm");
+        const userInput = document.getElementById("userInput");
+        const connStatus = document.getElementById("connStatus");
+        const leadScoreEl = document.getElementById("leadScore");
+        const scoreBadge = document.getElementById("scoreBadge");
+        const escalationBanner = document.getElementById("escalationBanner");
+
+        let socket = null;
+
+        function connectWebSocket() {
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                connStatus.classList.remove("offline");
+                connStatus.title = "Connected via WebSocket";
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                appendRevaMessage(data);
+            };
+
+            socket.onclose = () => {
+                connStatus.classList.add("offline");
+                connStatus.title = "Disconnected";
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            socket.onerror = (err) => {
+                console.error("WebSocket error:", err);
+            };
+        }
+
+        connectWebSocket();
+
+        chatForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            appendUserMessage(text);
+            userInput.value = "";
+
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ text: text }));
+            } else {
+                // Fallback to REST API if WebSocket is offline
+                fetch("/chat/text", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ session_id: sessionId, text: text })
+                })
+                .then(res => res.json())
+                .then(data => appendRevaMessage(data))
+                .catch(err => console.error("REST Error:", err));
+            }
+        });
+
+        function appendUserMessage(text) {
+            const row = document.createElement("div");
+            row.className = "message-row user";
+            row.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
+            messagesArea.appendChild(row);
+            scrollToBottom();
+        }
+
+        function appendRevaMessage(data) {
+            const row = document.createElement("div");
+            row.className = "message-row reva";
+
+            const modelUsed = data.model_used || "groq_llama3";
+            const latency = data.latency_ms ? data.latency_ms.toFixed(0) + "ms" : "N/A";
+            const cost = data.estimated_cost_usd ? "$" + data.estimated_cost_usd.toFixed(5) : "$0.00000";
+            const modelClass = modelUsed.includes("gemini") ? "gemini" : "groq";
+
+            row.innerHTML = `
+                <div class="bubble">${escapeHtml(data.response_text || "")}</div>
+                <div class="metadata-bar">
+                    <span class="meta-tag ${modelClass}">🤖 Model: ${modelUsed}</span>
+                    <span class="meta-tag">⚡ Latency: ${latency}</span>
+                    <span class="meta-tag">💰 Cost: ${cost}</span>
+                    <span class="meta-tag">🎯 Intent: ${data.intent || 'general'}</span>
+                </div>
+            `;
+
+            messagesArea.appendChild(row);
+            scrollToBottom();
+
+            // Update Lead Score Badge
+            if (typeof data.lead_score === "number") {
+                const score = data.lead_score;
+                leadScoreEl.textContent = score;
+                scoreBadge.className = "score-pill";
+                if (score >= 70) {
+                    scoreBadge.classList.add("hot");
+                    scoreBadge.innerHTML = `🔥 Score: <span>${score}</span>/100 (HOT)`;
+                } else if (score >= 40) {
+                    scoreBadge.classList.add("warm");
+                    scoreBadge.innerHTML = `⚡ Score: <span>${score}</span>/100 (WARM)`;
+                } else {
+                    scoreBadge.innerHTML = `🎯 Score: <span>${score}</span>/100 (NEW)`;
+                }
+            }
+
+            // Show Escalation Banner if triggered
+            if (data.should_escalate) {
+                escalationBanner.style.display = "block";
+            }
+        }
+
+        function scrollToBottom() {
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

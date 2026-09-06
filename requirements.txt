@@ -14,3 +14,4 @@ websockets
 pydantic
 httpx
 pytest
+python-multipart
