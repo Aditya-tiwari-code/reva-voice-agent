@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+python-dotenv
+faster-whisper
+gtts
+langdetect
+groq
+google-generativeai
+chromadb
+sentence-transformers
+sqlalchemy
+twilio
+websockets
+pydantic
+httpx
+pytest
