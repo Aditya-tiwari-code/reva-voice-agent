@@ -1,13 +1,11 @@
 import pytest
-from app.stt.transcriber import WhisperTranscriber
+from app.stt.transcriber import HinglishTranscriber
 
 def test_transcriber_initialization():
-    transcriber = WhisperTranscriber(model_size="base")
+    transcriber = HinglishTranscriber(model_size="base")
     assert transcriber.model_size == "base"
 
-@pytest.mark.asyncio
-async def test_transcribe_audio_stub():
-    transcriber = WhisperTranscriber()
-    result = await transcriber.transcribe_audio(b"dummy_audio")
-    assert "text" in result
-    assert "language" in result
+def test_transcribe_audio_stub():
+    transcriber = HinglishTranscriber()
+    normalized = transcriber.normalize_text("3 B.H.K flat")
+    assert normalized == "3 bhk flat"

@@ -24,6 +24,7 @@ class LanguageDetector:
         "availability_check",
         "location_query",
         "property_details",
+        "site_visit_request",
         "greeting"
     }
 

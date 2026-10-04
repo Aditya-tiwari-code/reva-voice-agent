@@ -15,3 +15,6 @@ pydantic
 httpx
 pytest
 python-multipart
+streamlit
+plotly
+pandas

@@ -1,0 +1,12 @@
+{
+  "total_queries_tested": 50,
+  "avg_routed_latency_ms": 1302.65,
+  "avg_groq_latency_ms": 911.86,
+  "avg_gemini_latency_ms": 1823.71,
+  "total_routed_cost_usd": 0.001469,
+  "total_always_gemini_cost_usd": 0.002049,
+  "cost_saved_usd": 0.00058,
+  "cost_savings_percent": 28.31,
+  "routing_accuracy_percent": 92.0,
+  "timestamp": "2026-10-04 19:14:58"
+}
