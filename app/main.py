@@ -129,6 +129,13 @@ async def get_lead_detail(session_id: str, db: Session = Depends(get_db)):
     return lead
 
 
+@app.get("/leads/{session_id}/history")
+async def get_lead_history(session_id: str, db: Session = Depends(get_db)):
+    """Retrieve full multi-turn conversation dialogue history for a lead session."""
+    turns = crud.get_turns_by_session(db, session_id)
+    return turns
+
+
 @app.get("/analytics/summary")
 async def get_analytics(db: Session = Depends(get_db)):
     """Retrieve aggregated system analytics across calls, models, costs, and lead scores."""

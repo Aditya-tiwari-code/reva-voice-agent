@@ -112,7 +112,7 @@ class ConversationAgent:
                 return True
 
         # Check consecutive fallback / low confidence turns
-        fallback_turns = [t for t in history if "Fallback" in t.get("content", "")]
+        fallback_turns = [t for t in history if t.get("is_fallback") or "Fallback" in t.get("content", "")]
         if len(fallback_turns) >= 3:
             return True
 
@@ -138,12 +138,15 @@ class ConversationAgent:
             self.sessions[session_id] = []
         history = self.sessions[session_id]
 
-        # Step 4: Route to Dynamic LLM
+        # Step 4: Route to Dynamic LLM (with fallback to Gemini and natural conversation)
         llm_result = self.router.route(
             text=user_text,
             complexity=complexity,
             context=context,
-            history=history
+            history=history,
+            language=language,
+            intent=intent,
+            properties=properties
         )
 
         response_text = llm_result.get("response_text", "")
@@ -171,7 +174,9 @@ class ConversationAgent:
         })
         self.sessions[session_id].append({
             "role": "assistant",
-            "content": response_text
+            "content": response_text,
+            "is_fallback": llm_result.get("is_fallback", False),
+            "model_used": llm_result.get("model_used")
         })
 
         return {

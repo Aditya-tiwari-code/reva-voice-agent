@@ -3,9 +3,16 @@ import time
 import urllib.request
 import json
 
+# Ensure UTF-8 standard output encoding on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 def check_health(base_url: str = "http://localhost:8000"):
     health_url = f"{base_url.rstrip('/')}/health"
-    print(f"🔍 Checking health for REVA server at: {health_url}")
+    print(f"[CHECKING] Testing health for REVA server at: {health_url}")
 
     start_time = time.time()
     try:
@@ -17,15 +24,15 @@ def check_health(base_url: str = "http://localhost:8000"):
             data = json.loads(body)
 
             if status_code == 200 and data.get("status") == "ok":
-                print(f"✅ SYSTEM HEALTHY | HTTP {status_code} | Latency: {latency_ms}ms")
-                print(f"   Payload: {data}")
+                print(f"[SUCCESS] SYSTEM HEALTHY | HTTP {status_code} | Latency: {latency_ms}ms")
+                print(f"          Payload: {data}")
                 return True
             else:
-                print(f"⚠️ SYSTEM UNHEALTHY | HTTP {status_code} | Payload: {data}")
+                print(f"[WARNING] SYSTEM UNHEALTHY | HTTP {status_code} | Payload: {data}")
                 return False
 
     except Exception as e:
-        print(f"❌ HEALTH CHECK FAILED | Error: {e}")
+        print(f"[ERROR] HEALTH CHECK FAILED | Error: {e}")
         return False
 
 if __name__ == "__main__":
