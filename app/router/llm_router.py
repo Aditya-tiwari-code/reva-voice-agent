@@ -31,32 +31,61 @@ def generate_natural_conversation(
     context: str = "",
     properties: Optional[List[Dict[str, Any]]] = None,
     language: str = "hinglish",
-    intent: str = "property_inquiry"
+    intent: str = "property_inquiry",
+    is_default_transaction: bool = False
 ) -> str:
     """
     Synthesizes a fluent, natural conversational response in Hindi/Hinglish/English
     using extracted property details, avoiding robotic template strings.
+    Strictly separates exact BHK matches from nearby alternative options.
+    Displays rent as monthly rupees (e.g. ₹35,000/month) and buy in Lakhs/Crore.
     """
     lang = (language or "hinglish").lower()
     user_lower = (user_text or "").lower()
 
-    # 1. Format matching properties as clean bullet points
-    bullet_items = []
+    # 1. Format matching properties as clean bullet points.
+    # Group into exact matches vs nearby/alternative options.
+    exact_items = []
+    alt_items = []
     if properties:
         for p in properties[:3]:
-            title = p.get("title") or "Verified Property"
-            loc = p.get("location") or ""
-            city = p.get("city") or ""
-            loc_str = f" ({loc}, {city})" if loc or city else ""
-            bhk = p.get("bhk")
+            meta = p.get("metadata") or {}
+            title = meta.get("title") or "Verified Property"
+            loc = meta.get("location") or ""
+            city = meta.get("city") or ""
+            loc_str = f" ({loc}, {city})" if (loc or city) else ""
+            bhk = meta.get("bhk")
             bhk_str = f"{bhk} BHK " if bhk else ""
-            ptype = p.get("property_type") or "Apartment"
-            price = p.get("price_lakh")
-            price_str = f"₹{price} Lakh" if price else ""
-            avail = p.get("availability") or "Ready to Move"
-            bullet_items.append(f"• {title}{loc_str} — {bhk_str}{ptype} | {price_str} | {avail}")
+            ptype = meta.get("property_type") or "Apartment"
+            trans = (meta.get("transaction_type") or "").lower()
+            price = meta.get("price_lakh")
+
+            if trans == "rent":
+                try:
+                    price_str = f"₹{int(float(price) * 1000):,}/month"
+                except Exception:
+                    price_str = f"₹{price}/month"
+            else:
+                try:
+                    p_val = float(price)
+                    if p_val >= 100.0:
+                        price_str = f"₹{p_val/100:.2f} Cr"
+                    else:
+                        price_str = f"₹{p_val:g} Lakh"
+                except Exception:
+                    price_str = f"₹{price} Lakh" if price else ""
+
+            area = meta.get("area_sqft")
+            area_str = f" | {area} sqft" if area else ""
+            trans_str = f" | {trans.capitalize()}" if trans else ""
+            avail = meta.get("availability") or "Ready to Move"
+
+            bullet = f"• {title}{loc_str} — {bhk_str}{ptype} | {price_str}{area_str}{trans_str} | {avail}"
+            if p.get("is_alternative"):
+                alt_items.append(bullet)
+            else:
+                exact_items.append(bullet)
     elif context and "Property" in context:
-        # Extract properties from context text if dicts not available
         for block in context.split("[Property"):
             if not block.strip():
                 continue
@@ -67,9 +96,29 @@ def generate_natural_conversation(
             city_str = city_match.group(1).strip() if city_match else ""
             price_str = price_match.group(1).strip() if price_match else ""
             if first_line:
-                bullet_items.append(f"• {first_line} ({city_str}) — {price_str}".strip(" — ()"))
+                exact_items.append(f"• {first_line} ({city_str}) — {price_str}".strip(" — ()"))
 
-    bullets_text = "\n".join(bullet_items) if bullet_items else ""
+    if exact_items and alt_items:
+        bullets_text = (
+            "\n".join(exact_items) +
+            "\n\nNearby options in the same city:\n" +
+            "\n".join(alt_items)
+        )
+    elif exact_items:
+        bullets_text = "\n".join(exact_items)
+    elif alt_items:
+        bullets_text = "Nearby options in the same city:\n" + "\n".join(alt_items)
+    else:
+        bullets_text = ""
+
+    rent_note = ""
+    if is_default_transaction and bullets_text:
+        if lang == "hindi":
+            rent_note = "\n\n(नोट: यदि आप किराए पर देखना चाहते हैं, तो इस क्षेत्र में किराए के विकल्प भी उपलब्ध हैं।)"
+        elif lang == "english":
+            rent_note = "\n\n(Note: Rental options are also available in this area if you're looking to rent.)"
+        else:
+            rent_note = "\n\n(Note: Agar aap rent par dekhna chahte hain, toh is area mein rental options bhi available hain.)"
 
     # 2. Contextual Natural Dialogue Generation
     if intent == "greeting" or any(w in user_lower for w in ["hi", "hello", "hey", "namaste", "namaskar"]):
@@ -84,7 +133,7 @@ def generate_natural_conversation(
         if bullets_text:
             return (
                 f"Ji bilkul! Hum aapke liye site visit zaroor schedule kar denge. Hamare matching options hain:\n\n"
-                f"{bullets_text}\n\n"
+                f"{bullets_text}{rent_note}\n\n"
                 "Kya aap kal subah ya shaam ka time prefer karenge? Hamari team aapse details confirm karne ke liye turant connect karegi."
             )
         return "Ji bilkul! Main aapke liye site visit zaroor schedule karwa deta hoon. Kya aap kal ka time prefer karenge ya weekend pe visit karna chahenge?"
@@ -93,7 +142,7 @@ def generate_natural_conversation(
         if bullets_text:
             return (
                 f"Ji haan, builder aur property owner se pricing par 3% se 5% tak negotiation ho sakti hai, khaaskar agar payment terms flexible hon.\n\n"
-                f"{bullets_text}\n\n"
+                f"{bullets_text}{rent_note}\n\n"
                 "Main aapki baat hamare senior relationship manager se arrange karwa deta hoon jo aapko best deal dilwayenge."
             )
         return "Ji haan, property price par negotiation possible hai. Main aapki baat hamare senior property manager se connect karwa deta hoon jo aapko best possible discount negotiate karwa denge."
@@ -102,7 +151,7 @@ def generate_natural_conversation(
         if bullets_text:
             return (
                 f"Dono hi locations ki apni khasiyat hai. Hamare paas available top matching options ye hain:\n\n"
-                f"{bullets_text}\n\n"
+                f"{bullets_text}{rent_note}\n\n"
                 "Noida Expressway par planned infrastructure aur budget-friendly spacious flats milte hain, jabki Gurgaon business hubs aur premium social life ke liye popular hai. Aap investment ke liye dekh rahe hain ya personal use ke liye?"
             )
         return "Noida aur Gurgaon dono ke apne advantages hain. Noida planned road connectivity aur affordable options deta hai, jabki Gurgaon premium commercial connectivity provide karta hai. Aap investment ke liye dekh rahe hain ya self-use ke liye?"
@@ -111,7 +160,7 @@ def generate_natural_conversation(
         if bullets_text:
             return (
                 f"Is property mein covered car parking, 24/7 power backup, security aur modern clubhouse amenities uplabdh hain:\n\n"
-                f"{bullets_text}\n\n"
+                f"{bullets_text}{rent_note}\n\n"
                 "Kya aap iska detailed floor plan ya brochure dekhna chahenge?"
             )
 
@@ -120,23 +169,46 @@ def generate_natural_conversation(
         if lang == "hindi":
             return (
                 f"नमस्ते! आपके सर्च के अनुसार हमारे पास ये बेहतरीन प्रॉपर्टीज उपलब्ध हैं:\n\n"
-                f"{bullets_text}\n\n"
+                f"{bullets_text}{rent_note}\n\n"
                 "क्या आप इनमें से किसी प्रॉपर्टी की साइट विजिट बुक करना चाहेंगे या अधिक जानकारी चाहते हैं?"
             )
         elif lang == "english":
             return (
                 f"Hello! Based on your requirement, here are the top verified matching properties:\n\n"
-                f"{bullets_text}\n\n"
+                f"{bullets_text}{rent_note}\n\n"
                 "Would you like to schedule a site visit or view the detailed brochure for any of these?"
             )
         else:
             return (
                 f"Namaste! Aapke search ke anusaar hamare paas ye matching verified properties available hain:\n\n"
-                f"{bullets_text}\n\n"
+                f"{bullets_text}{rent_note}\n\n"
                 "Kya aap inme se kisi property ki site visit schedule karna chahenge ya pricing details janna chahenge?"
             )
 
     # Friendly fallback when no direct listing matched
+    # Try to detect the city the user asked for so we can be honest
+    import re as _re
+    city_asked = None
+    for _cw in ["ghaziabad", "delhi", "agra", "meerut", "faridabad", "lucknow",
+                "jaipur", "ahmedabad", "surat", "indore", "bhopal", "nagpur"]:
+        if _cw in user_lower:
+            city_asked = _cw.capitalize()
+            break
+
+    if city_asked:
+        if lang == "hindi":
+            return (
+                f"माफ़ करें, हमारे पास अभी {city_asked} में कोई लिस्टिंग उपलब्ध नहीं है। "
+                "लेकिन नजदीकी नोएडा में हमारे पास कई बेहतरीन विकल्प हैं जैसे Godrej Woods (Sector 43, ₹110 Lakh) "
+                "और ATS One Hamlet (Sector 104, ₹160 Lakh)। क्या मैं नोएडा के विकल्प दिखाऊं?"
+            )
+        return (
+            f"Sorry, we currently don't have any listings in {city_asked}. "
+            "However, we have great options in nearby Noida — for example Godrej Woods (Sector 43) at ₹110 Lakh "
+            "and ATS One Hamlet (Sector 104) at ₹160 Lakh. "
+            "Would you like me to show you more Noida properties in your budget?"
+        )
+
     if lang == "hindi":
         return "नमस्ते! मुझे आपकी रिक्वायरमेंट समझ आ गई है। इस बजट और लोकेशन में नई यूनिट्स जल्द उपलब्ध होंगी। क्या आप नजदीकी सेक्टर में विकल्प देखना चाहेंगे?"
     return "Namaste! Mujhe aapki requirement samajh aa gayi hai. Is budget aur location mein kuch nayi properties shortlist ho rahi hain. Main aapko nearby sectors mein best verified options dikha sakta hoon. Kya aap koi specific sector prefer karenge?"
@@ -329,7 +401,8 @@ class AdaptiveLLMRouter:
         history: Optional[List[Dict[str, str]]] = None,
         language: str = "hinglish",
         intent: str = "property_inquiry",
-        properties: Optional[List[Dict[str, Any]]] = None
+        properties: Optional[List[Dict[str, Any]]] = None,
+        is_default_transaction: bool = False
     ) -> Dict[str, Any]:
         """
         Routes prompt to Groq or Gemini based on complexity:
@@ -346,7 +419,13 @@ class AdaptiveLLMRouter:
             "1. Always respond in the EXACT same language and tone the customer used (Hindi, English, or conversational Hinglish).\n"
             "2. Never say 'As an AI' or 'Fallback response'. Talk naturally like an experienced local real estate advisor.\n"
             "3. Use the provided property context accurately to answer pricing, location, BHK, and amenities.\n"
-            "4. Keep answers concise, helpful, and invite the customer to book a site visit or ask follow-up questions.\n"
+            "4. STRICT BHK AND TRANSACTION RULES:\n"
+            "   - Only present properties that strictly match the user's requested BHK count.\n"
+            "   - If fewer than 3 properties match and 'Nearby / Alternative Options' are provided in the context, introduce them clearly under 'Nearby options' (mentioning their different BHK) only after showing the exact matches. Never mix them silently.\n"
+            "   - Display rent in monthly format (e.g. ₹35,000/month) and buy in Lakh or Crore (e.g. ₹42 Lakh or ₹1.5 Cr).\n"
+            "   - Never show rent properties when the user asks to buy, and never show buy properties when the user asks to rent.\n"
+            "   - If the user did not specify buy or rent, show buy listings and briefly mention that rental options are also available in this area.\n"
+            "5. Keep answers concise, helpful, and invite the customer to book a site visit or ask follow-up questions.\n"
             f"Available properties context:\n{context}\n"
             f"Conversation history: {history_str}"
         )
@@ -387,7 +466,8 @@ class AdaptiveLLMRouter:
                         context=context,
                         properties=properties,
                         language=language,
-                        intent=intent
+                        intent=intent,
+                        is_default_transaction=is_default_transaction
                     )
                     tokens_used = len((system_prompt + text + response_text).split())
                     model_used_label = "groq_llama3"
@@ -419,7 +499,8 @@ class AdaptiveLLMRouter:
                         context=context,
                         properties=properties,
                         language=language,
-                        intent=intent
+                        intent=intent,
+                        is_default_transaction=is_default_transaction
                     )
                     tokens_used = len((system_prompt + text + response_text).split())
                     model_used_label = "gemini_flash"

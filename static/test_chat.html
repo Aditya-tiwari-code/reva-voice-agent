@@ -230,7 +230,85 @@
             background: rgba(15, 23, 42, 0.8);
             border-top: 1px solid var(--card-border);
             display: flex;
-            gap: 12px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .mic-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .lang-select {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            padding: 6px 8px;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .lang-select:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .mic-btn {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            width: 44px;
+            height: 44px;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .mic-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .mic-btn.listening {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+            animation: mic-pulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes mic-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50%       { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+
+        .speech-status {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            min-height: 1.1em;
+            padding: 0 4px;
+        }
+
+        .speech-status.error {
+            color: var(--accent-red);
+        }
+
+        .speech-status.info {
+            color: var(--accent-cyan);
         }
 
         .chat-input {
@@ -325,8 +403,19 @@
 
         <!-- Input Area -->
         <form id="chatForm" class="input-area">
-            <input type="text" id="userInput" class="chat-input" placeholder="Type your property requirement (e.g. 3BHK in Bangalore under 100 Lakh)..." autocomplete="off" required>
-            <button type="submit" class="send-btn">Send ➔</button>
+            <div class="input-row">
+                <input type="text" id="userInput" class="chat-input" placeholder="Type your property requirement (e.g. 3BHK in Bangalore under 100 Lakh)..." autocomplete="off" required>
+                <div class="mic-controls" id="micControls">
+                    <select id="langSelect" class="lang-select" title="Speech language">
+                        <option value="hi-IN" selected>Hinglish</option>
+                        <option value="hi-IN">Hindi</option>
+                        <option value="en-IN">English</option>
+                    </select>
+                    <button type="button" id="micBtn" class="mic-btn" title="Click to speak">🎤</button>
+                </div>
+                <button type="submit" class="send-btn">Send ➔</button>
+            </div>
+            <div id="speechStatus" class="speech-status" aria-live="polite"></div>
         </form>
     </div>
 
@@ -454,6 +543,113 @@
             const div = document.createElement("div");
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ── Speech-to-Text via Web Speech API ──────────────────────────────
+        const micBtn      = document.getElementById("micBtn");
+        const langSelect  = document.getElementById("langSelect");
+        const micControls = document.getElementById("micControls");
+        const speechStatus = document.getElementById("speechStatus");
+
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRec) {
+            // Browser not supported — hide mic, show static message
+            micControls.style.display = "none";
+            speechStatus.textContent = "Voice input needs Chrome or Edge.";
+            speechStatus.classList.add("error");
+        } else {
+            let recognition = null;
+            let isListening = false;
+
+            function setSpeechStatus(msg, cls) {
+                speechStatus.textContent = msg;
+                speechStatus.className = "speech-status" + (cls ? " " + cls : "");
+            }
+
+            function startListening() {
+                recognition = new SpeechRec();
+                recognition.continuous      = true;
+                recognition.interimResults  = true;
+                recognition.lang            = langSelect.value;
+
+                // Snapshot of whatever is already in the input box
+                const existingText = userInput.value;
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    micBtn.classList.add("listening");
+                    micBtn.title = "Click to stop listening";
+                    setSpeechStatus("Listening… speak now", "info");
+                };
+
+                recognition.onresult = (event) => {
+                    let interimTranscript = "";
+                    let finalTranscript   = "";
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    // Show live interim words in the input
+                    userInput.value = (existingText ? existingText + " " : "") +
+                                      finalTranscript + interimTranscript;
+                };
+
+                recognition.onerror = (event) => {
+                    if (event.error === "not-allowed" || event.error === "denied") {
+                        setSpeechStatus("Microphone permission denied. Allow mic access and try again.", "error");
+                    } else if (event.error === "no-speech") {
+                        setSpeechStatus("No speech detected. Please try again.", "error");
+                    } else {
+                        setSpeechStatus(`Speech error: ${event.error}`, "error");
+                    }
+                    stopListening();
+                };
+
+                recognition.onend = () => {
+                    // Auto-restart only if still in listening state
+                    // (handles the browser's 30 s hard cut-off)
+                    if (isListening) {
+                        try { recognition.start(); } catch (_) { stopListening(); }
+                    }
+                };
+
+                try {
+                    recognition.start();
+                } catch (err) {
+                    setSpeechStatus(`Could not start mic: ${err.message}`, "error");
+                }
+            }
+
+            function stopListening() {
+                isListening = false;
+                micBtn.classList.remove("listening");
+                micBtn.title = "Click to speak";
+                setSpeechStatus("");
+                if (recognition) {
+                    try { recognition.stop(); } catch (_) {}
+                    recognition = null;
+                }
+            }
+
+            micBtn.addEventListener("click", () => {
+                if (isListening) {
+                    stopListening();
+                } else {
+                    startListening();
+                }
+            });
+
+            // Stop recognition automatically when the message is sent
+            chatForm.addEventListener("submit", () => {
+                if (isListening) stopListening();
+            }, { capture: true });
         }
     </script>
 </body>

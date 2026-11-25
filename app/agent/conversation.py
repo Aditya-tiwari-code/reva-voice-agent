@@ -131,7 +131,8 @@ class ConversationAgent:
         # Step 2: RAG Property Retrieval
         filters = self.retriever.extract_filters_from_text(user_text)
         properties = self.retriever.search(user_text, filters=filters, top_k=3)
-        context = self.retriever.format_results_for_llm(properties)
+        is_default_trans = filters.get("is_default_transaction", False)
+        context = self.retriever.format_results_for_llm(properties, is_default_transaction=is_default_trans)
 
         # Step 3: Manage Conversation History
         if session_id not in self.sessions:
@@ -146,7 +147,8 @@ class ConversationAgent:
             history=history,
             language=language,
             intent=intent,
-            properties=properties
+            properties=properties,
+            is_default_transaction=is_default_trans
         )
 
         response_text = llm_result.get("response_text", "")
@@ -179,6 +181,24 @@ class ConversationAgent:
             "model_used": llm_result.get("model_used")
         })
 
+        # Clean properties array with standard keys for frontend cards
+        clean_properties = []
+        for p in properties:
+            meta = p.get("metadata") or {}
+            clean_properties.append({
+                "id": p.get("id") or meta.get("id"),
+                "title": meta.get("title") or "Verified Property",
+                "location": meta.get("location") or "",
+                "city": meta.get("city") or "",
+                "price_lakh": meta.get("price_lakh"),
+                "bhk": meta.get("bhk"),
+                "area_sqft": meta.get("area_sqft"),
+                "transaction_type": meta.get("transaction_type") or "buy",
+                "availability": meta.get("availability") or "Ready to Move",
+                "amenities": meta.get("amenities") or "",
+                "is_alternative": p.get("is_alternative", False)
+            })
+
         return {
             "session_id": session_id,
             "user_text": user_text,
@@ -187,6 +207,7 @@ class ConversationAgent:
             "complexity": complexity,
             "filters_extracted": filters,
             "properties_found": properties,
+            "properties": clean_properties,
             "response_text": response_text,
             "model_used": llm_result.get("model_used"),
             "tokens_used": llm_result.get("tokens_used", 0),

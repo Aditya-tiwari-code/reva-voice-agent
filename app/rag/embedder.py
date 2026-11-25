@@ -1,4 +1,6 @@
 import os
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 import csv
 import chromadb
 from sentence_transformers import SentenceTransformer
@@ -44,11 +46,32 @@ class PropertyEmbedder:
                 desc = str(row.get("description", ""))
 
                 # Construct unified document text for vector search
-                combined_text = (
-                    f"{bhk} BHK {prop_type} in {location}, {city}. "
-                    f"Price: {price} lakh. Area: {area} sqft. "
-                    f"Type: {trans_type}. Amenities: {amenities}. {desc}"
-                )
+                # Format price clearly based on transaction type (monthly for rent, lakh/crore for buy)
+                if trans_type == "rent":
+                    try:
+                        p_val = float(price)
+                        price_display = f"₹{int(p_val * 1000):,}/month"
+                    except Exception:
+                        price_display = f"₹{price}/month"
+                    combined_text = (
+                        f"{bhk} BHK {prop_type} in {location}, {city}. "
+                        f"Rent: {price_display}. Area: {area} sqft. "
+                        f"Type: rent. Amenities: {amenities}. {desc}"
+                    )
+                else:
+                    try:
+                        p_val = float(price)
+                        if p_val >= 100.0:
+                            price_display = f"₹{p_val/100:.2f} crore"
+                        else:
+                            price_display = f"₹{p_val:g} lakh"
+                    except Exception:
+                        price_display = f"₹{price} lakh"
+                    combined_text = (
+                        f"{bhk} BHK {prop_type} in {location}, {city}. "
+                        f"Price: {price_display}. Area: {area} sqft. "
+                        f"Type: buy. Amenities: {amenities}. {desc}"
+                    )
 
                 metadata = {
                     "id": int(row["id"]),
@@ -70,15 +93,19 @@ class PropertyEmbedder:
                 ids.append(prop_id)
 
         # Batch encode embeddings
-        embeddings = self.model.encode(documents).tolist()
+        embeddings = self.model.encode(documents, batch_size=64, show_progress_bar=True).tolist()
 
-        # Upsert documents and embeddings into ChromaDB collection
-        self.collection.upsert(
-            documents=documents,
-            embeddings=embeddings,
-            metadatas=metadatas,
-            ids=ids
-        )
+        # Upsert documents and embeddings into ChromaDB collection in safe batches (max 5461)
+        batch_size = 500
+        total_items = len(documents)
+        for i in range(0, total_items, batch_size):
+            end_idx = min(i + batch_size, total_items)
+            self.collection.upsert(
+                documents=documents[i:end_idx],
+                embeddings=embeddings[i:end_idx],
+                metadatas=metadatas[i:end_idx],
+                ids=ids[i:end_idx]
+            )
 
         return len(documents)
 

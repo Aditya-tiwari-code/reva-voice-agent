@@ -1,0 +1,2048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REVA — Multilingual AI Real Estate Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #090d16 0%, #0f172a 40%, #1e1b4b 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-hover: rgba(51, 65, 85, 0.85);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --card-border-glow: rgba(6, 182, 212, 0.4);
+            --user-bubble: #2563eb;
+            --reva-bubble: #1e293b;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --shadow-glow: 0 10px 25px -5px rgba(6, 182, 212, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── NAVBAR ─────────────────────────────────────────── */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+            background: rgba(15, 23, 42, 0.75);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .logo-badge {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: white;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.35);
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .brand-text span.badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: rgba(6, 182, 212, 0.2);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-cyan);
+        }
+
+        .btn-talk {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: white;
+            border: none;
+            padding: 0.65rem 1.3rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-talk:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.45);
+        }
+
+        /* ── HERO SECTION ───────────────────────────────────── */
+        .hero {
+            padding: 5rem 1.5rem 4rem;
+            max-width: 1100px;
+            margin: 0 auto;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .hero-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(6, 182, 212, 0.12);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            color: var(--accent-cyan);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .hero h2 {
+            font-size: 3.2rem;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #ffffff 40%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero h2 .highlight {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p.subhead {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            max-width: 700px;
+            line-height: 1.6;
+        }
+
+        /* Hero Search Bar */
+        .search-box-wrap {
+            width: 100%;
+            max-width: 760px;
+            margin-top: 1rem;
+            position: relative;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 8px 12px 8px 20px;
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+        }
+
+        .search-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            font-size: 1.05rem;
+            padding: 0.6rem 0.5rem;
+        }
+
+        .search-box input::placeholder {
+            color: #64748b;
+        }
+
+        .search-mic-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: var(--text-muted);
+            width: 44px;
+            height: 44px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-right: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-mic-btn:hover {
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+        }
+
+        .search-submit-btn {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: white;
+            border: none;
+            padding: 0.75rem 1.6rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .search-submit-btn:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+        }
+
+        .quick-chips {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        .chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip:hover {
+            background: rgba(6, 182, 212, 0.15);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            transform: translateY(-1px);
+        }
+
+        /* ── HOW IT WORKS ───────────────────────────────────── */
+        .section-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+            width: 100%;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-header h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .step-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2.2rem 1.8rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .step-card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-4px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        .step-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-card h4 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.6rem;
+        }
+
+        .step-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* ── FEATURED LISTINGS ──────────────────────────────── */
+        .listings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .prop-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .prop-card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .prop-thumb {
+            height: 170px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        .thumb-icon {
+            font-size: 4rem;
+            opacity: 0.85;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+        }
+
+        .prop-badge {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-buy {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .badge-rent {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent-purple);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+        }
+
+        .prop-city-badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(8px);
+            color: #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid var(--card-border);
+        }
+
+        .prop-body {
+            padding: 1.4rem;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .prop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .prop-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .prop-loc {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .prop-price {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--accent-cyan);
+            margin: 4px 0;
+        }
+
+        .prop-specs {
+            display: flex;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .spec-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .prop-tags {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            max-height: 2.8em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .prop-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 10px;
+        }
+
+        .btn-action {
+            flex: 1;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-visit {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: white;
+        }
+
+        .btn-visit:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-emi {
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-emi:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .btn-wa {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 8px 12px;
+            flex: 0 0 auto;
+        }
+
+        .btn-wa:hover {
+            background: rgba(16, 185, 129, 0.25);
+            transform: translateY(-1px);
+        }
+
+        /* ── FOOTER ─────────────────────────────────────────── */
+        footer {
+            margin-top: auto;
+            border-top: 1px solid var(--card-border);
+            padding: 2.5rem 1.5rem;
+            background: rgba(15, 23, 42, 0.8);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        footer a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+
+        /* ── FLOATING CHAT BUBBLE & PANEL ───────────────────── */
+        .chat-trigger-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: white;
+            border: none;
+            border-radius: 35px;
+            padding: 12px 22px 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(6, 182, 212, 0.4);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .chat-trigger-btn:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 14px 40px rgba(6, 182, 212, 0.55);
+        }
+
+        .chat-trigger-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        /* Chat Panel Container */
+        .chat-panel {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 440px;
+            height: 640px;
+            max-width: calc(100vw - 32px);
+            max-height: calc(100vh - 48px);
+            z-index: 1100;
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            transform-origin: bottom right;
+            transform: scale(0.8) translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .chat-panel.open {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Chat Header */
+        .chat-header {
+            padding: 1rem 1.2rem;
+            background: rgba(15, 23, 42, 0.85);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-header-text h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chat-header-text p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .chat-header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .toggle-btn.active {
+            background: rgba(6, 182, 212, 0.2);
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: white;
+        }
+
+        /* Lead score bar */
+        .score-bar {
+            background: rgba(30, 41, 59, 0.6);
+            padding: 5px 12px;
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        .score-pill {
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        /* Messages Area */
+        .messages-area {
+            flex: 1;
+            padding: 1.2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            scroll-behavior: smooth;
+        }
+
+        .message-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 88%;
+        }
+
+        .message-row.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .message-row.reva {
+            align-self: flex-start;
+            align-items: flex-start;
+            max-width: 95%;
+        }
+
+        .bubble {
+            padding: 0.85rem 1.1rem;
+            border-radius: 16px;
+            font-size: 0.92rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            position: relative;
+        }
+
+        .message-row.user .bubble {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+
+        .message-row.reva .bubble {
+            background: var(--reva-bubble);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .meta-bar {
+            margin-top: 4px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 4px;
+        }
+
+        .speak-msg-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 0 2px;
+            transition: color 0.2s;
+        }
+
+        .speak-msg-btn:hover {
+            color: var(--accent-cyan);
+        }
+
+        /* Property Cards inside chat */
+        .chat-props-container {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .chat-prop-card {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: border-color 0.2s;
+        }
+
+        .chat-prop-card:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .chat-prop-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .chat-prop-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .chat-prop-price {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--accent-cyan);
+            white-space: nowrap;
+        }
+
+        .chat-prop-sub {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-prop-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .btn-mini {
+            flex: 1;
+            padding: 5px 8px;
+            font-size: 0.75rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-mini-visit {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: white;
+        }
+
+        .btn-mini-emi {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--card-border);
+            color: #cbd5e1;
+        }
+
+        .btn-mini-wa {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            flex: 0 0 auto;
+            padding: 5px 8px;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            padding: 8px 14px;
+            background: var(--reva-bubble);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            border-bottom-left-radius: 4px;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .typing-indicator span {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-4px); opacity: 1; }
+        }
+
+        /* Quick-reply chips bar above chat input */
+        .chat-quick-chips {
+            padding: 6px 12px;
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            background: rgba(15, 23, 42, 0.8);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            scrollbar-width: none;
+        }
+
+        .chat-quick-chips::-webkit-scrollbar { display: none; }
+
+        .chat-chip {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--card-border);
+            color: #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .chat-chip:hover {
+            background: rgba(6, 182, 212, 0.15);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* Chat Input Area */
+        .chat-input-area {
+            padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            color: white;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+        }
+
+        .mic-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .lang-select {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            padding: 6px 4px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .mic-btn {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            width: 38px;
+            height: 38px;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .mic-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .mic-btn.listening {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+            animation: mic-pulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes mic-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+        }
+
+        .chat-send-btn {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border: none;
+            border-radius: 10px;
+            padding: 0 1rem;
+            height: 38px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chat-send-btn:hover {
+            opacity: 0.9;
+        }
+
+        .chat-speech-status {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            min-height: 1em;
+            padding: 0 4px;
+        }
+
+        .chat-speech-status.error { color: var(--accent-red); }
+        .chat-speech-status.info { color: var(--accent-cyan); }
+
+        /* ── MODALS ─────────────────────────────────────────── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-card {
+            background: #0f172a;
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            animation: modal-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modal-pop {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h4 {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        .form-control {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 0.65rem 0.9rem;
+            color: white;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border: none;
+            color: white;
+            padding: 0.6rem 1.4rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* EMI Results Box */
+        .emi-result-box {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 14px;
+            padding: 14px;
+            text-align: center;
+            margin-top: 6px;
+        }
+
+        .emi-amount {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--accent-cyan);
+        }
+
+        .emi-breakdown {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        /* ── RESPONSIVE ─────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .navbar { padding: 1rem; }
+            .nav-links { display: none; }
+            .hero h2 { font-size: 2.2rem; }
+            .hero p.subhead { font-size: 1rem; }
+            .chat-panel {
+                bottom: 0;
+                right: 0;
+                width: 100vw;
+                height: 100vh;
+                max-width: 100vw;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── NAVBAR ─────────────────────────────────────────── -->
+    <header class="navbar">
+        <a href="/" class="brand-logo">
+            <div class="logo-badge">R</div>
+            <div class="brand-text">
+                <h1>REVA <span class="badge">AI AGENT</span></h1>
+            </div>
+        </a>
+
+        <nav class="nav-links">
+            <a href="#featured" class="nav-link">Featured Listings</a>
+            <a href="#how-it-works" class="nav-link">How It Works</a>
+            <a href="/static/test_chat.html" class="nav-link" title="Open Full-Screen Test UI">Test Chat ↗</a>
+        </nav>
+
+        <button class="btn-talk" id="navTalkBtn">
+            <span>💬</span> Talk to REVA
+        </button>
+    </header>
+
+    <!-- ── HERO SECTION ───────────────────────────────────── -->
+    <section class="hero">
+        <div class="hero-pill">
+            <span>⚡ India's 1st Multilingual Real Estate Voice Agent</span>
+        </div>
+
+        <h2>
+            Apna ghar dhundo,<br>
+            <span class="highlight">apni bhasha mein</span>
+        </h2>
+
+        <p class="subhead">
+            Search verified properties across Noida, Ghaziabad, Gurgaon & Bangalore in Hindi, English or conversational Hinglish. Instant pricing, 1-click site visits & live EMI breakdown.
+        </p>
+
+        <!-- Search Box -->
+        <div class="search-box-wrap">
+            <form id="heroSearchForm" class="search-box">
+                <input type="text" id="heroSearchInput" placeholder="Boliye ya type kijiye... e.g. 2BHK flat in Ghaziabad under 50 lakh" autocomplete="off">
+                <button type="button" id="heroMicBtn" class="search-mic-btn" title="Speak to Search">🎤</button>
+                <button type="submit" class="search-submit-btn">Search ➔</button>
+            </form>
+
+            <div class="quick-chips">
+                <span class="chip" data-query="2BHK flat in Ghaziabad under 50 lakh">🏢 2BHK in Ghaziabad under 50L</span>
+                <span class="chip" data-query="Furnished flat for rent in Delhi under 30 thousand">🔑 Rent in Delhi</span>
+                <span class="chip" data-query="Flats for sale in Faridabad">🏡 Sale in Faridabad</span>
+                <span class="chip" data-query="Flats for rent in Noida under 40 thousand">📍 Rent in Noida</span>
+                <span class="chip" data-query="DLF 3BHK flat in Gurgaon">🏙️ 3BHK in Gurgaon</span>
+                <span class="chip" data-query="Site visit schedule karni hai">📅 Book a site visit</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── HOW IT WORKS ───────────────────────────────────── -->
+    <section class="section-wrap" id="how-it-works">
+        <div class="section-header">
+            <h3>How REVA Works</h3>
+            <p>Seamless voice-first real estate search designed for Indian homebuyers</p>
+        </div>
+
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-icon">🎙️</div>
+                <h4>1. Speak or Type in Hinglish</h4>
+                <p>Natural conversation without rigid keywords. Ask in Hindi, English, or mixed dialects like <em>"Bhai Ghaziabad mein 50 lakh tak ka 2BHK dikhao"</em>.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-icon">🧠</div>
+                <h4>2. Strict RAG Vector Search</h4>
+                <p>ChromaDB filters verified properties strictly by your requested BHK and city, separating nearby alternatives so you never get mixed answers.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-icon">📅</div>
+                <h4>3. 1-Click Site Visit & EMI</h4>
+                <p>Directly book site visits with instant SQLite logging, calculate monthly EMI amortization, and share verified listings over WhatsApp.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── FEATURED LISTINGS ──────────────────────────────── -->
+    <section class="section-wrap" id="featured">
+        <div class="section-header">
+            <h3>Featured Verified Properties</h3>
+            <p>Hand-picked residential listings in top demand corridors</p>
+        </div>
+
+        <div class="listings-grid" id="featuredGrid">
+            <!-- Dynamic Cards Populated via JS -->
+        </div>
+    </section>
+
+    <!-- ── FOOTER ─────────────────────────────────────────── -->
+    <footer>
+        <p><strong>REVA — Multilingual AI Voice Agent for Real Estate</strong></p>
+        <p style="margin-top: 6px;">Powered by FastAPI, ChromaDB, Groq Llama 3 & Gemini 1.5 Flash • <a href="/docs" target="_blank">API Docs</a> • <a href="/static/test_chat.html">Backup Chat UI</a></p>
+    </footer>
+
+    <!-- ── FLOATING CHAT TRIGGER BUTTON ───────────────────── -->
+    <button class="chat-trigger-btn" id="chatTriggerBtn">
+        <div class="chat-trigger-icon">💬</div>
+        <span>Chat with REVA</span>
+    </button>
+
+    <!-- ── FLOATING CHAT PANEL ────────────────────────────── -->
+    <div class="chat-panel" id="chatPanel">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="chat-header-title">
+                <div class="logo-badge" style="width:36px; height:36px; font-size:1.05rem;">R</div>
+                <div class="chat-header-text">
+                    <h4>REVA AI <span class="badge" style="font-size:0.65rem; color:var(--accent-cyan);">Online</span></h4>
+                    <p>Real Estate Voice Agent</p>
+                </div>
+            </div>
+            <div class="chat-header-controls">
+                <button type="button" id="autoSpeakToggle" class="toggle-btn" title="Toggle Auto-Speak Voice Replies">
+                    🔊 Auto-Speak
+                </button>
+                <button type="button" id="chatCloseBtn" class="close-btn" title="Close Chat">✕</button>
+            </div>
+        </div>
+
+        <!-- Score Status -->
+        <div class="score-bar">
+            <span>Lead Score: <strong id="leadScoreVal" class="score-pill">0/100 (NEW)</strong></span>
+            <span id="connIndicator" style="color:var(--accent-green);">● Connected</span>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="messages-area" id="chatMessages">
+            <div class="message-row reva">
+                <div class="bubble">Namaste! Main REVA hoon, aapki real estate AI assistant. Looking to buy or rent? Preferred city, budget, ya BHK configuration bataiye!</div>
+                <div class="meta-bar">
+                    <span>🤖 System</span>
+                    <button class="speak-msg-btn" onclick="speakText('Namaste! Main REVA hoon, aapki real estate AI assistant. Looking to buy or rent? Preferred city, budget, ya BHK configuration bataiye!')" title="Listen">🔊</button>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typingIndicator">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+
+        <!-- Quick-reply chips -->
+        <div class="chat-quick-chips">
+            <span class="chat-chip" data-query="2BHK in Ghaziabad under 50 lakh">2BHK in Ghaziabad</span>
+            <span class="chat-chip" data-query="Furnished flat for rent in Delhi under 30 thousand">Rent in Delhi</span>
+            <span class="chat-chip" data-query="Flat for sale in Faridabad">Sale in Faridabad</span>
+            <span class="chat-chip" data-query="Flats for rent in Noida under 40 thousand">Rent in Noida</span>
+            <span class="chat-chip" data-query="3BHK in Gurgaon">3BHK in Gurgaon</span>
+            <span class="chat-chip" data-query="Site visit schedule karni hai">Book site visit</span>
+        </div>
+
+        <!-- Input Area -->
+        <form id="chatInputForm" class="chat-input-area">
+            <div class="input-row">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Type or click mic to speak..." autocomplete="off" required>
+                <div class="mic-controls">
+                    <select id="chatLangSelect" class="lang-select" title="Speech Recognition Language">
+                        <option value="hi-IN" selected>Hinglish</option>
+                        <option value="hi-IN">Hindi</option>
+                        <option value="en-IN">English</option>
+                    </select>
+                    <button type="button" id="chatMicBtn" class="mic-btn" title="Click to speak">🎤</button>
+                </div>
+                <button type="submit" class="chat-send-btn">➔</button>
+            </div>
+            <div id="chatSpeechStatus" class="chat-speech-status"></div>
+        </form>
+    </div>
+
+    <!-- ── SITE VISIT BOOKING MODAL ───────────────────────── -->
+    <div class="modal-overlay" id="bookingModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h4>📅 Book Property Site Visit</h4>
+                <button type="button" class="close-btn" onclick="closeModal('bookingModal')">✕</button>
+            </div>
+            <form id="bookingForm" class="modal-body">
+                <input type="hidden" id="bookPropId" value="">
+                
+                <div class="form-group">
+                    <label>Selected Property</label>
+                    <input type="text" id="bookPropTitle" class="form-control" readonly style="opacity:0.8;">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Your Name *</label>
+                        <input type="text" id="bookName" class="form-control" placeholder="Aditya Sharma" required>
+                    </div>
+                    <div class="form-group">
+                        <label>10-Digit Mobile Phone *</label>
+                        <input type="tel" id="bookPhone" class="form-control" placeholder="9876543210" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Preferred Date *</label>
+                        <input type="date" id="bookDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Preferred Time Slot *</label>
+                        <select id="bookTime" class="form-control" required>
+                            <option value="Morning (10:00 AM - 12:00 PM)">Morning (10 AM - 12 PM)</option>
+                            <option value="Afternoon (1:00 PM - 3:00 PM)" selected>Afternoon (1 PM - 3 PM)</option>
+                            <option value="Evening (4:00 PM - 6:00 PM)">Evening (4 PM - 6 PM)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="bookingMsg" style="font-size:0.85rem; min-height:1.2em;"></div>
+
+                <div class="modal-footer" style="padding:0; border:none; margin-top:8px;">
+                    <button type="button" class="btn-cancel" onclick="closeModal('bookingModal')">Cancel</button>
+                    <button type="submit" class="btn-primary" id="bookSubmitBtn">Confirm Site Visit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── EMI CALCULATOR MODAL ───────────────────────────── -->
+    <div class="modal-overlay" id="emiModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h4>🧮 Home Loan EMI Calculator</h4>
+                <button type="button" class="close-btn" onclick="closeModal('emiModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Property</label>
+                    <input type="text" id="emiPropTitle" class="form-control" readonly style="opacity:0.8;">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Property Price (₹ Lakhs)</label>
+                        <input type="number" id="emiPriceLakh" class="form-control" step="0.5" value="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Down Payment (%)</label>
+                        <input type="number" id="emiDownPaymentPct" class="form-control" min="10" max="90" value="20">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Annual Interest Rate (%)</label>
+                        <input type="number" id="emiInterestRate" class="form-control" step="0.1" value="8.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Tenure (Years)</label>
+                        <input type="number" id="emiTenureYears" class="form-control" min="1" max="30" value="20">
+                    </div>
+                </div>
+
+                <div class="emi-result-box">
+                    <div style="font-size:0.8rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em;">Estimated Monthly EMI</div>
+                    <div class="emi-amount" id="emiMonthlyVal">₹0</div>
+                    <div class="emi-breakdown">
+                        <div>Loan: <strong id="emiLoanAmt" style="color:#cbd5e1;">₹0</strong></div>
+                        <div>Interest: <strong id="emiTotalInterest" style="color:#cbd5e1;">₹0</strong></div>
+                        <div>Total: <strong id="emiTotalPayment" style="color:#cbd5e1;">₹0</strong></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-primary" onclick="closeModal('emiModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── APPLICATION JAVASCRIPT ─────────────────────────── -->
+    <script>
+        // ── 1. GLOBAL STATE & UTILITIES ──────────────────────
+        const sessionId = "session_" + Math.random().toString(36).substring(2, 10);
+        let autoSpeakEnabled = false;
+
+        function getPropertyIcon(type) {
+            const t = (type || "").toLowerCase();
+            if (t.includes("villa")) return "🏰";
+            if (t.includes("penthouse")) return "🏙️";
+            if (t.includes("studio")) return "🛋️";
+            if (t.includes("house")) return "🏠";
+            return "🏢"; // default apartment
+        }
+
+        function formatDisplayPrice(priceLakh, transType) {
+            if (!priceLakh) return "Price on Request";
+            const isRent = (transType || "").toLowerCase() === "rent";
+            if (isRent) {
+                // Rent is in thousands per month
+                const monthly = Math.round(parseFloat(priceLakh) * 1000);
+                return `₹${monthly.toLocaleString("en-IN")}/month`;
+            } else {
+                const val = parseFloat(priceLakh);
+                if (val >= 100) {
+                    return `₹${(val / 100).toFixed(2)} Cr`;
+                }
+                return `₹${val} Lakh`;
+            }
+        }
+
+        function openModal(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.add("open");
+        }
+
+        function closeModal(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.remove("open");
+        }
+
+        // Set minimum booking date to today
+        const todayStr = new Date().toISOString().split("T")[0];
+        const dateInput = document.getElementById("bookDate");
+        if (dateInput) {
+            dateInput.min = todayStr;
+            dateInput.value = todayStr;
+        }
+
+        // ── 2. FEATURED LISTINGS RENDERER ────────────────────
+        const DEFAULT_FEATURED = [
+            { id: 31, title: "Gaur City 2BHK", location: "Raj Nagar Extension", city: "Ghaziabad", price_lakh: 42.0, bhk: 2, area_sqft: 980, property_type: "Apartment", transaction_type: "buy", availability: "Ready to Move", amenities: "Clubhouse, Swimming Pool, Gym, 24/7 Security" },
+            { id: 4, title: "Godrej Woods 2BHK", location: "Sector 43", city: "Noida", price_lakh: 110.0, bhk: 2, area_sqft: 1250, property_type: "Apartment", transaction_type: "buy", availability: "Under Construction", amenities: "Urban Forest, Swimming Pool, Gym" },
+            { id: 33, title: "Indirapuram Habitat Centre", location: "Indirapuram", city: "Ghaziabad", price_lakh: 35.0, bhk: 2, area_sqft: 890, property_type: "Apartment", transaction_type: "rent", availability: "Immediate", amenities: "Gym, Parking, Power Backup, Park" },
+            { id: 38, title: "Jaypee Kosmos 2BHK", location: "Sector 134", city: "Noida", price_lakh: 54.0, bhk: 2, area_sqft: 1020, property_type: "Apartment", transaction_type: "rent", availability: "Immediate", amenities: "Swimming Pool, 24/7 Security, Badminton Court" },
+            { id: 2, title: "Sobha Neopolis 2BHK", location: "Panathur", city: "Bangalore", price_lakh: 95.0, bhk: 2, area_sqft: 1180, property_type: "Apartment", transaction_type: "buy", availability: "Under Construction", amenities: "Greek Clubhouse, Tennis Court, Jogging Track" },
+            { id: 10, title: "Hiranandani Gardens 2BHK", location: "Powai", city: "Mumbai", price_lakh: 65.0, bhk: 2, area_sqft: 980, property_type: "Apartment", transaction_type: "rent", availability: "Ready to Move", amenities: "Lake View, Squash Court, Swimming Pool" }
+        ];
+
+        function renderFeaturedListings(props) {
+            const grid = document.getElementById("featuredGrid");
+            if (!grid) return;
+            grid.innerHTML = "";
+
+            props.forEach(p => {
+                const icon = getPropertyIcon(p.property_type);
+                const priceFormatted = formatDisplayPrice(p.price_lakh, p.transaction_type);
+                const isRent = (p.transaction_type || "").toLowerCase() === "rent";
+                const badgeClass = isRent ? "badge-rent" : "badge-buy";
+                const badgeLabel = isRent ? "For Rent" : "For Sale";
+
+                const card = document.createElement("div");
+                card.className = "prop-card";
+                card.innerHTML = `
+                    <div class="prop-thumb">
+                        <span class="thumb-icon">${icon}</span>
+                        <span class="prop-badge ${badgeClass}">${badgeLabel}</span>
+                        <span class="prop-city-badge">${escapeHtml(p.city)}</span>
+                    </div>
+                    <div class="prop-body">
+                        <div class="prop-header">
+                            <div>
+                                <div class="prop-title">${escapeHtml(p.title)}</div>
+                                <div class="prop-loc">📍 ${escapeHtml(p.location)}, ${escapeHtml(p.city)}</div>
+                            </div>
+                        </div>
+                        <div class="prop-price">${priceFormatted}</div>
+                        <div class="prop-specs">
+                            <span class="spec-item">🛏️ ${p.bhk || 'N/A'} BHK</span>
+                            <span class="spec-item">📐 ${p.area_sqft || 'N/A'} sqft</span>
+                            <span class="spec-item">🔑 ${escapeHtml(p.availability || 'Available')}</span>
+                        </div>
+                        <div class="prop-tags">${escapeHtml(p.amenities || '')}</div>
+                        <div class="prop-actions">
+                            <button class="btn-action btn-visit" onclick="openBookingModal('${p.id}', '${escapeJs(p.title)}')">📅 Book Visit</button>
+                            ${!isRent ? `<button class="btn-action btn-emi" onclick="openEmiModal('${escapeJs(p.title)}', ${p.price_lakh})">🧮 EMI</button>` : ''}
+                            <button class="btn-action btn-wa" onclick="openWhatsApp('${escapeJs(p.title)}', '${escapeJs(p.location)}', '${escapeJs(p.city)}', '${priceFormatted}', ${p.bhk})" title="Chat on WhatsApp">💬</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Fetch from backend or use fallback
+        fetch("/properties/featured")
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) renderFeaturedListings(data);
+                else renderFeaturedListings(DEFAULT_FEATURED);
+            })
+            .catch(() => renderFeaturedListings(DEFAULT_FEATURED));
+
+        // ── 3. FLOATING CHAT LOGIC ───────────────────────────
+        const chatPanel = document.getElementById("chatPanel");
+        const chatTriggerBtn = document.getElementById("chatTriggerBtn");
+        const chatCloseBtn = document.getElementById("chatCloseBtn");
+        const navTalkBtn = document.getElementById("navTalkBtn");
+        const chatMessages = document.getElementById("chatMessages");
+        const chatInputForm = document.getElementById("chatInputForm");
+        const chatInput = document.getElementById("chatInput");
+        const typingIndicator = document.getElementById("typingIndicator");
+        const leadScoreVal = document.getElementById("leadScoreVal");
+        const autoSpeakToggle = document.getElementById("autoSpeakToggle");
+
+        function openChat() {
+            chatPanel.classList.add("open");
+            chatTriggerBtn.style.display = "none";
+            chatInput.focus();
+        }
+
+        function closeChat() {
+            chatPanel.classList.remove("open");
+            chatTriggerBtn.style.display = "flex";
+        }
+
+        chatTriggerBtn.addEventListener("click", openChat);
+        navTalkBtn.addEventListener("click", openChat);
+        chatCloseBtn.addEventListener("click", closeChat);
+
+        // Auto-Speak toggle
+        autoSpeakToggle.addEventListener("click", () => {
+            autoSpeakEnabled = !autoSpeakEnabled;
+            autoSpeakToggle.classList.toggle("active", autoSpeakEnabled);
+        });
+
+        // Hero Search Integration: Submitting hero form opens chat and queries REVA
+        document.getElementById("heroSearchForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const q = document.getElementById("heroSearchInput").value.trim();
+            if (!q) return;
+            openChat();
+            sendChatMessage(q);
+            document.getElementById("heroSearchInput").value = "";
+        });
+
+        // Quick Chips click handler
+        document.querySelectorAll(".chip, .chat-chip").forEach(chip => {
+            chip.addEventListener("click", () => {
+                const query = chip.getAttribute("data-query");
+                if (!query) return;
+                openChat();
+                sendChatMessage(query);
+            });
+        });
+
+        // WebSocket Connection
+        let socket = null;
+        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${sessionId}`;
+
+        function initWebSocket() {
+            try {
+                socket = new WebSocket(wsUrl);
+                socket.onopen = () => {
+                    document.getElementById("connIndicator").textContent = "● Connected";
+                    document.getElementById("connIndicator").style.color = "var(--accent-green)";
+                };
+                socket.onmessage = (event) => {
+                    hideTyping();
+                    const data = JSON.parse(event.data);
+                    appendRevaMessage(data);
+                };
+                socket.onclose = () => {
+                    document.getElementById("connIndicator").textContent = "○ Disconnected";
+                    document.getElementById("connIndicator").style.color = "var(--accent-red)";
+                    setTimeout(initWebSocket, 3000);
+                };
+            } catch (_) {}
+        }
+        initWebSocket();
+
+        chatInputForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (!text) return;
+            sendChatMessage(text);
+            chatInput.value = "";
+        });
+
+        function sendChatMessage(text) {
+            appendUserMessage(text);
+            showTyping();
+
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ text: text }));
+            } else {
+                fetch("/chat/text", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ session_id: sessionId, text: text })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    hideTyping();
+                    appendRevaMessage(data);
+                })
+                .catch(() => {
+                    hideTyping();
+                    appendRevaMessage({ response_text: "Namaste! Connecting to agent... Please try again." });
+                });
+            }
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = "flex";
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = "none";
+        }
+
+        function appendUserMessage(text) {
+            const row = document.createElement("div");
+            row.className = "message-row user";
+            row.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
+            chatMessages.appendChild(row);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function appendRevaMessage(data) {
+            const row = document.createElement("div");
+            row.className = "message-row reva";
+
+            const replyText = data.response_text || "";
+            const modelUsed = data.model_used || "System";
+            const latency = data.latency_ms ? Math.round(data.latency_ms) + "ms" : "";
+
+            // Properties list: prefer clean `properties` array, fallback to `properties_found`
+            let propCardsHtml = "";
+            const props = data.properties || (data.properties_found ? data.properties_found.map(p => ({
+                id: p.id || (p.metadata && p.metadata.id),
+                title: (p.metadata && p.metadata.title) || "Property",
+                location: (p.metadata && p.metadata.location) || "",
+                city: (p.metadata && p.metadata.city) || "",
+                price_lakh: (p.metadata && p.metadata.price_lakh),
+                bhk: (p.metadata && p.metadata.bhk),
+                area_sqft: (p.metadata && p.metadata.area_sqft),
+                transaction_type: (p.metadata && p.metadata.transaction_type) || "buy"
+            })) : []);
+
+            if (props && props.length > 0) {
+                propCardsHtml = `<div class="chat-props-container">`;
+                props.slice(0, 3).forEach(p => {
+                    const priceFormatted = formatDisplayPrice(p.price_lakh, p.transaction_type);
+                    const isRent = (p.transaction_type || "").toLowerCase() === "rent";
+                    propCardsHtml += `
+                        <div class="chat-prop-card">
+                            <div class="chat-prop-top">
+                                <span class="chat-prop-title">${getPropertyIcon(p.property_type)} ${escapeHtml(p.title)}</span>
+                                <span class="chat-prop-price">${priceFormatted}</span>
+                            </div>
+                            <div class="chat-prop-sub">
+                                <span>📍 ${escapeHtml(p.location)}, ${escapeHtml(p.city)}</span>
+                                <span>🛏️ ${p.bhk || ''} BHK</span>
+                                ${p.area_sqft ? `<span>📐 ${p.area_sqft} sqft</span>` : ''}
+                            </div>
+                            <div class="chat-prop-actions">
+                                <button type="button" class="btn-mini btn-mini-visit" onclick="openBookingModal('${p.id}', '${escapeJs(p.title)}')">📅 Book Visit</button>
+                                ${!isRent ? `<button type="button" class="btn-mini btn-mini-emi" onclick="openEmiModal('${escapeJs(p.title)}', ${p.price_lakh})">🧮 EMI</button>` : ''}
+                                <button type="button" class="btn-mini btn-mini-wa" onclick="openWhatsApp('${escapeJs(p.title)}', '${escapeJs(p.location)}', '${escapeJs(p.city)}', '${priceFormatted}', ${p.bhk})" title="WhatsApp">💬</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                propCardsHtml += `</div>`;
+            }
+
+            row.innerHTML = `
+                <div class="bubble">${escapeHtml(replyText)}${propCardsHtml}</div>
+                <div class="meta-bar">
+                    <span>🤖 ${escapeHtml(modelUsed)}</span>
+                    ${latency ? `<span>⚡ ${latency}</span>` : ''}
+                    <button class="speak-msg-btn" onclick="speakText('${escapeJs(replyText)}')" title="Speak Reply">🔊 Speak</button>
+                </div>
+            `;
+
+            chatMessages.appendChild(row);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Update lead score badge
+            if (typeof data.lead_score === "number") {
+                leadScoreVal.textContent = `${data.lead_score}/100`;
+                leadScoreVal.style.color = data.lead_score >= 60 ? "var(--accent-green)" : "var(--accent-amber)";
+            }
+
+            // Auto-speak if enabled
+            if (autoSpeakEnabled && replyText) {
+                speakText(replyText);
+            }
+        }
+
+        // ── 4. VOICE RECOGNITION (STT) ───────────────────────
+        const chatMicBtn = document.getElementById("chatMicBtn");
+        const heroMicBtn = document.getElementById("heroMicBtn");
+        const chatLangSelect = document.getElementById("chatLangSelect");
+        const chatSpeechStatus = document.getElementById("chatSpeechStatus");
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (SpeechRec) {
+            let recognition = null;
+            let isListening = false;
+
+            function startMic(targetInput) {
+                recognition = new SpeechRec();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = chatLangSelect ? chatLangSelect.value : "hi-IN";
+
+                const initialText = targetInput.value;
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    chatMicBtn.classList.add("listening");
+                    chatSpeechStatus.textContent = "Listening... Speak now";
+                    chatSpeechStatus.className = "chat-speech-status info";
+                };
+
+                recognition.onresult = (event) => {
+                    let interim = "";
+                    let final = "";
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const t = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) final += t;
+                        else interim += t;
+                    }
+                    targetInput.value = (initialText ? initialText + " " : "") + final + interim;
+                };
+
+                recognition.onerror = (event) => {
+                    chatSpeechStatus.textContent = "Mic error: " + event.error;
+                    chatSpeechStatus.className = "chat-speech-status error";
+                    stopMic();
+                };
+
+                recognition.onend = () => {
+                    if (isListening) {
+                        try { recognition.start(); } catch (_) { stopMic(); }
+                    }
+                };
+
+                try { recognition.start(); } catch (err) { stopMic(); }
+            }
+
+            function stopMic() {
+                isListening = false;
+                chatMicBtn.classList.remove("listening");
+                chatSpeechStatus.textContent = "";
+                if (recognition) {
+                    try { recognition.stop(); } catch (_) {}
+                    recognition = null;
+                }
+            }
+
+            chatMicBtn.addEventListener("click", () => {
+                if (isListening) stopMic();
+                else startMic(chatInput);
+            });
+
+            heroMicBtn.addEventListener("click", () => {
+                openChat();
+                startMic(chatInput);
+            });
+
+            chatInputForm.addEventListener("submit", () => {
+                if (isListening) stopMic();
+            }, { capture: true });
+
+        } else {
+            chatMicBtn.style.display = "none";
+            heroMicBtn.style.display = "none";
+            chatSpeechStatus.textContent = "Voice input needs Chrome or Edge.";
+        }
+
+        // ── 5. VOICE SYNTHESIS (TTS) ─────────────────────────
+        function speakText(text) {
+            if (!("speechSynthesis" in window)) return;
+            window.speechSynthesis.cancel(); // Stop any active speech
+
+            // Strip URLs and property card text for cleaner vocalization
+            const clean = text.replace(/https?:\/\/\S+/g, "").replace(/•/g, "").substring(0, 300);
+            const utterance = new SpeechSynthesisUtterance(clean);
+            
+            // Prefer Hindi/Indian English voice if available
+            const voices = window.speechSynthesis.getVoices();
+            const indVoice = voices.find(v => v.lang.includes("hi") || v.lang.includes("en-IN"));
+            if (indVoice) utterance.voice = indVoice;
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // ── 6. SITE VISIT BOOKING MODAL ──────────────────────
+        function openBookingModal(propId, propTitle) {
+            document.getElementById("bookPropId").value = propId || "";
+            document.getElementById("bookPropTitle").value = propTitle || "Verified Property";
+            document.getElementById("bookingMsg").textContent = "";
+            openModal("bookingModal");
+        }
+
+        document.getElementById("bookingForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const msgEl = document.getElementById("bookingMsg");
+            const submitBtn = document.getElementById("bookSubmitBtn");
+
+            const name = document.getElementById("bookName").value.trim();
+            const phone = document.getElementById("bookPhone").value.trim();
+            const date = document.getElementById("bookDate").value;
+            const time = document.getElementById("bookTime").value;
+            const propId = document.getElementById("bookPropId").value;
+            const propTitle = document.getElementById("bookPropTitle").value;
+
+            // Validate Indian phone number (10 digits)
+            const cleanPhone = phone.replace(/[\s\-\(\)\+]/g, "");
+            if (!/^\d{10,15}$/.test(cleanPhone)) {
+                msgEl.textContent = "Please enter a valid 10-digit mobile number.";
+                msgEl.style.color = "var(--accent-red)";
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Booking...";
+
+            fetch("/bookings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: name,
+                    phone: phone,
+                    property_id: propId,
+                    preferred_date: date,
+                    preferred_time: time,
+                    session_id: sessionId
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Confirm Site Visit";
+                if (data.status === "success") {
+                    msgEl.textContent = `✓ ${data.message}`;
+                    msgEl.style.color = "var(--accent-green)";
+                    // Also notify inside active chat
+                    if (chatPanel.classList.contains("open")) {
+                        appendRevaMessage({
+                            response_text: `Namaste ${name}! Aapka site visit ${propTitle} ke liye ${date} (${time}) ko book ho gaya hai. Hamari team aapko contact karegi.`
+                        });
+                    }
+                    setTimeout(() => closeModal("bookingModal"), 2200);
+                } else {
+                    msgEl.textContent = data.detail || "Booking could not be completed.";
+                    msgEl.style.color = "var(--accent-red)";
+                }
+            })
+            .catch(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Confirm Site Visit";
+                msgEl.textContent = "Network error. Please try again.";
+                msgEl.style.color = "var(--accent-red)";
+            });
+        });
+
+        // ── 7. EMI CALCULATOR MODAL ──────────────────────────
+        function openEmiModal(propTitle, priceLakh) {
+            document.getElementById("emiPropTitle").value = propTitle || "Property";
+            if (priceLakh) document.getElementById("emiPriceLakh").value = priceLakh;
+            calculateEMI();
+            openModal("emiModal");
+        }
+
+        function calculateEMI() {
+            const priceLakh = parseFloat(document.getElementById("emiPriceLakh").value) || 0;
+            const downPct = parseFloat(document.getElementById("emiDownPaymentPct").value) || 20;
+            const rateYear = parseFloat(document.getElementById("emiInterestRate").value) || 8.5;
+            const years = parseFloat(document.getElementById("emiTenureYears").value) || 20;
+
+            const totalCost = priceLakh * 100000;
+            const loanAmount = totalCost * (1 - downPct / 100);
+            const monthlyRate = (rateYear / 12) / 100;
+            const months = years * 12;
+
+            if (loanAmount <= 0 || months <= 0) return;
+
+            let emi = 0;
+            if (monthlyRate === 0) {
+                emi = loanAmount / months;
+            } else {
+                emi = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+            }
+
+            const totalPayment = emi * months;
+            const totalInterest = totalPayment - loanAmount;
+
+            document.getElementById("emiMonthlyVal").textContent = `₹${Math.round(emi).toLocaleString("en-IN")}/mo`;
+            document.getElementById("emiLoanAmt").textContent = `₹${(loanAmount / 100000).toFixed(1)}L`;
+            document.getElementById("emiTotalInterest").textContent = `₹${(totalInterest / 100000).toFixed(1)}L`;
+            document.getElementById("emiTotalPayment").textContent = `₹${(totalPayment / 100000).toFixed(1)}L`;
+        }
+
+        ["emiPriceLakh", "emiDownPaymentPct", "emiInterestRate", "emiTenureYears"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener("input", calculateEMI);
+        });
+
+        // ── 8. WHATSAPP SHARE ────────────────────────────────
+        function openWhatsApp(title, loc, city, price, bhk) {
+            const text = `Namaste! I am interested in *${title}* in *${loc}, ${city}* (${bhk} BHK, ${price}). Please share more details and arrange a site visit.`;
+            const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(url, "_blank");
+        }
+
+        // ── 9. ESCAPE HELPERS ────────────────────────────────
+        function escapeHtml(text) {
+            if (!text) return "";
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function escapeJs(text) {
+            if (!text) return "";
+            return String(text).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>

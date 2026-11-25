@@ -1,7 +1,25 @@
+import os
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 
 router = APIRouter(prefix="/twilio", tags=["telephony"])
+
+# ── Twilio credentials check ──────────────────────────────────────────────────
+# If the credentials are missing or still contain placeholder text, every
+# /twilio/* endpoint returns HTTP 503 instead of crashing.
+
+_PLACEHOLDER_TOKENS = {"", "your_twilio_account_sid_here", "your_twilio_auth_token_here"}
+
+def _twilio_configured() -> bool:
+    sid = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
+    tok = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
+    return (sid not in _PLACEHOLDER_TOKENS) and (tok not in _PLACEHOLDER_TOKENS)
+
+_NOT_CONFIGURED_RESPONSE = JSONResponse(
+    status_code=503,
+    content={"error": "Twilio not configured", "detail": "Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in .env to enable telephony."}
+)
+
 
 class TwilioHandler:
     """
@@ -67,7 +85,10 @@ twilio_handler = TwilioHandler()
 async def handle_incoming_voice(request: Request):
     """
     Twilio voice webhook triggered when a new call arrives.
+    Returns HTTP 503 if Twilio credentials are not configured.
     """
+    if not _twilio_configured():
+        return _NOT_CONFIGURED_RESPONSE
     twiml_xml = twilio_handler.generate_greeting_twiml()
     return Response(content=twiml_xml, media_type="text/xml")
 
@@ -78,7 +99,11 @@ async def handle_voice_transcription(
 ):
     """
     Twilio callback receiving gathered speech text input.
+    Returns HTTP 503 if Twilio credentials are not configured.
     """
+    if not _twilio_configured():
+        return _NOT_CONFIGURED_RESPONSE
+
     if not SpeechResult:
         twiml = twilio_handler.generate_response_twiml("Aapki aawaz saaf nahi aayi. Kripya dobara bataiye.")
         return Response(content=twiml, media_type="text/xml")
@@ -87,3 +112,4 @@ async def handle_voice_transcription(
     response_text = f"Samajh gaya. Aapne pucha: '{SpeechResult}'. Hum offers dhoondh rahe hain."
     twiml = twilio_handler.generate_response_twiml(response_text)
     return Response(content=twiml, media_type="text/xml")
+

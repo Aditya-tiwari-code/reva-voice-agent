@@ -68,6 +68,15 @@ class ChatRequest(BaseModel):
     phone: Optional[str] = None
 
 
+class BookingRequest(BaseModel):
+    name: str
+    phone: str
+    property_id: Optional[str] = None
+    preferred_date: str
+    preferred_time: str
+    session_id: Optional[str] = None
+
+
 # REST Endpoints
 @app.get("/health")
 async def health():
@@ -143,6 +152,92 @@ async def get_analytics(db: Session = Depends(get_db)):
     return summary
 
 
+@app.post("/bookings")
+async def create_booking(request: BookingRequest, db: Session = Depends(get_db)):
+    """
+    Book a property site visit.
+    Validates phone number, creates site_visit record in SQLite,
+    updates lead status to 'booked', and returns confirmation.
+    """
+    import re
+    phone_clean = re.sub(r'[\s\-\(\)\+]', '', request.phone)
+    if not phone_clean.isdigit() or len(phone_clean) < 10 or len(phone_clean) > 15:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid phone number. Please provide a valid 10-digit mobile number."
+        )
+
+    if not request.name.strip():
+        raise HTTPException(status_code=400, detail="Name is required for booking.")
+    if not request.preferred_date.strip():
+        raise HTTPException(status_code=400, detail="Preferred date is required.")
+    if not request.preferred_time.strip():
+        raise HTTPException(status_code=400, detail="Preferred time is required.")
+
+    visit = crud.create_site_visit(
+        db=db,
+        name=request.name,
+        phone=request.phone,
+        property_id=request.property_id,
+        preferred_date=request.preferred_date,
+        preferred_time=request.preferred_time,
+        session_id=request.session_id
+    )
+
+    return {
+        "status": "success",
+        "message": f"Site visit confirmed for {visit.name} on {visit.preferred_date} at {visit.preferred_time}.",
+        "booking": {
+            "id": visit.id,
+            "name": visit.name,
+            "phone": visit.phone,
+            "property_id": visit.property_id,
+            "preferred_date": visit.preferred_date,
+            "preferred_time": visit.preferred_time,
+            "session_id": visit.session_id,
+            "status": visit.status,
+            "created_at": str(visit.created_at)
+        }
+    }
+
+
+@app.get("/bookings")
+async def get_bookings(db: Session = Depends(get_db)):
+    """Retrieve all site visit bookings for dashboard and administrative review."""
+    visits = crud.get_all_site_visits(db)
+    return visits
+
+
+@app.get("/properties/featured")
+async def get_featured_properties():
+    """Retrieve featured listings for homepage showcase."""
+    import csv
+    csv_path = Path(__file__).resolve().parent.parent / "data" / "properties.csv"
+    featured = []
+    if csv_path.exists():
+        with open(csv_path, mode="r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            # Pick a diverse mix of 6 featured properties across cities and buy/rent
+            for row in reader:
+                pid = int(row.get("id", 0))
+                if pid in [2, 4, 10, 31, 33, 38]:  # Bangalore, Noida, Mumbai rent, Ghaziabad buy, Ghaziabad rent, Noida rent
+                    featured.append({
+                        "id": pid,
+                        "title": row.get("title", ""),
+                        "location": row.get("location", ""),
+                        "city": row.get("city", ""),
+                        "price_lakh": float(row.get("price_lakh", 0.0)),
+                        "bhk": int(row.get("bhk", 0)),
+                        "area_sqft": int(row.get("area_sqft", 0)),
+                        "property_type": row.get("property_type", "Apartment"),
+                        "transaction_type": row.get("transaction_type", "buy"),
+                        "availability": row.get("availability", "Ready to Move"),
+                        "amenities": row.get("amenities", ""),
+                        "description": row.get("description", "")
+                    })
+    return featured
+
+
 # WebSocket Real-Time Chat Endpoint
 @app.websocket("/ws/chat/{session_id}")
 async def websocket_chat(websocket: WebSocket, session_id: str, db: Session = Depends(get_db)):
@@ -196,7 +291,10 @@ async def websocket_chat(websocket: WebSocket, session_id: str, db: Session = De
 
 @app.get("/")
 async def root():
-    """Root homepage redirecting to Test Chat UI or API documentation."""
+    """Root homepage serving index.html or fallback to test_chat.html."""
+    index_html = STATIC_DIR / "index.html"
+    if index_html.exists():
+        return FileResponse(str(index_html))
     test_html = STATIC_DIR / "test_chat.html"
     if test_html.exists():
         return FileResponse(str(test_html))

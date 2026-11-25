@@ -73,6 +73,20 @@ class ConversationTurn(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
 
 
+class SiteVisit(Base):
+    __tablename__ = "site_visits"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    phone = Column(String(30), nullable=False)
+    property_id = Column(String(50), nullable=True)
+    preferred_date = Column(String(50), nullable=False)
+    preferred_time = Column(String(50), nullable=False)
+    session_id = Column(String(100), nullable=True, index=True)
+    status = Column(String(30), default="confirmed")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 def init_db():
     """Creates database tables if they do not exist."""
     Base.metadata.create_all(bind=engine)

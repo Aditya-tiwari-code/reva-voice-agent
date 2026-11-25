@@ -3,7 +3,46 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.db.models import Lead, Call, ConversationTurn
+from app.db.models import Lead, Call, ConversationTurn, SiteVisit
+
+def create_site_visit(
+    db: Session,
+    name: str,
+    phone: str,
+    preferred_date: str,
+    preferred_time: str,
+    property_id: Optional[str] = None,
+    session_id: Optional[str] = None
+) -> SiteVisit:
+    """Create a new site visit booking and update associated lead to 'booked' status."""
+    visit = SiteVisit(
+        name=name.strip(),
+        phone=phone.strip(),
+        property_id=str(property_id).strip() if property_id is not None else None,
+        preferred_date=preferred_date.strip(),
+        preferred_time=preferred_time.strip(),
+        session_id=session_id.strip() if session_id else None,
+        status="confirmed"
+    )
+    db.add(visit)
+    db.commit()
+    db.refresh(visit)
+
+    # Update lead status to booked
+    if session_id:
+        update_lead(
+            db,
+            session_id=session_id,
+            status="booked",
+            caller_name=name.strip(),
+            caller_phone=phone.strip()
+        )
+
+    return visit
+
+def get_all_site_visits(db: Session) -> List[SiteVisit]:
+    """Retrieve all site visit bookings ordered by latest created."""
+    return db.query(SiteVisit).order_by(SiteVisit.created_at.desc()).all()
 
 def create_lead(db: Session, session_id: str, phone: Optional[str] = None) -> Lead:
     """Create a new lead entry in SQLite database."""

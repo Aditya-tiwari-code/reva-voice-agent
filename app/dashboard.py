@@ -46,7 +46,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_BASE_URL = os.getenv("API_URL", os.getenv("API_BASE_URL", "http://localhost:8000"))
 
 # Database Direct Fallback Helpers
 def get_db_session():
