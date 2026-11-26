@@ -17,6 +17,7 @@ from app.db.models import init_db, get_db
 from app.db import crud
 from app.agent.conversation import ConversationAgent
 from app.telephony.twilio_handler import router as twilio_router
+from app.tts.tts_service import tts_service, AUDIO_CACHE_DIR, cleanup_old_audio_files
 
 # Global ConversationAgent Instance
 agent_instance: Optional[ConversationAgent] = None
@@ -30,6 +31,9 @@ async def lifespan(app: FastAPI):
     
     # 2. Initialize Conversation Agent
     agent_instance = ConversationAgent()
+
+    # 3. Phase 7: Audio cache cleanup on startup (remove files older than 24h)
+    cleanup_old_audio_files(AUDIO_CACHE_DIR, max_age_hours=24)
     
     yield
     # Cleanup on shutdown if needed
@@ -77,11 +81,60 @@ class BookingRequest(BaseModel):
     session_id: Optional[str] = None
 
 
+class TTSRequest(BaseModel):
+    text: str
+    language: Optional[str] = "english"
+
+
 # REST Endpoints
 @app.get("/health")
 async def health():
     """Health check endpoint."""
     return {"status": "ok", "version": "1.0"}
+
+
+@app.post(\"/tts\")
+async def generate_tts(request: TTSRequest):
+    """
+    Synthesize text to speech using gTTS with Indian accents and audio cache.
+    Degrades gracefully returning tts_failed=True if synthesis fails.
+    """
+    res = tts_service.generate_speech(text=request.text, language=request.language or "english")
+    return res
+
+
+@app.post("/tts/sentences")
+async def generate_tts_sentences(request: TTSRequest):
+    """
+    Phase 8: Sentence-by-sentence streaming TTS.
+    Returns a list of audio URLs per sentence so the browser can play
+    the first sentence while the rest are still loading.
+    """
+    sentences = tts_service.generate_speech_sentences(
+        text=request.text,
+        language=request.language or "english"
+    )
+    return {"sentences": sentences}
+
+
+@app.get("/tts/filler")
+async def get_filler_audio(language: str = "english"):
+    """
+    Phase 8: Return a short filler audio played immediately while REVA thinks.
+    """
+    result = tts_service.get_filler_audio(language=language)
+    return result
+
+
+@app.get("/tts/audio/{filename}")
+async def get_tts_audio_file(filename: str):
+    """Stream cached synthesized audio file."""
+    # Prevent directory traversal
+    clean_filename = Path(filename).name
+    file_path = AUDIO_CACHE_DIR / clean_filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found.")
+    return FileResponse(str(file_path), media_type="audio/mpeg")
 
 
 @app.post("/chat/text")
@@ -299,3 +352,103 @@ async def root():
     if test_html.exists():
         return FileResponse(str(test_html))
     return {"message": "Welcome to REVA Real Estate Voice Agent API", "docs": "/docs"}
+
+
+# ==========================================
+# Phase 10: Shareable Summary Endpoints
+# ==========================================
+class ShareSummaryRequest(BaseModel):
+    session_id: Optional[str] = None
+    shortlist: list = []
+    visit_date: Optional[str] = None
+    visit_time: Optional[str] = None
+    name: Optional[str] = None
+
+
+@app.post("/share/whatsapp")
+async def generate_whatsapp_link(request: ShareSummaryRequest):
+    """
+    Phase 10: Generate a WhatsApp click-to-chat link with pre-filled property shortlist summary.
+    Uses wa.me/?text= with URL-encoded plain text — no Twilio needed.
+    """
+    import urllib.parse
+    lines = ["🏠 *REVA Property Shortlist*\n"]
+    for i, prop in enumerate(request.shortlist, 1):
+        name_ = prop.get("title") or "Property"
+        city = prop.get("city") or ""
+        price = prop.get("price_lakh", "")
+        bhk = prop.get("bhk", "")
+        area = prop.get("area_sqft", "")
+        lines.append(
+            f"{i}. *{name_}* — {bhk}BHK, {city}\n"
+            f"   💰 ₹{price} Lakh | 📐 {area} sq ft\n"
+        )
+    if request.visit_date and request.visit_time:
+        lines.append(f"\n📅 *Site Visit Booked:* {request.visit_date} at {request.visit_time}")
+    if request.name:
+        lines.append(f"👤 Name: {request.name}")
+    lines.append("\n_Sent via REVA — Real Estate Voice Agent_")
+    full_text = "\n".join(lines)
+    encoded = urllib.parse.quote(full_text)
+    wa_link = f"https://wa.me/?text={encoded}"
+    return {"whatsapp_url": wa_link, "summary_text": full_text}
+
+
+@app.post("/share/pdf")
+async def generate_pdf_summary(request: ShareSummaryRequest):
+    """
+    Phase 10: Generate a downloadable PDF summary of the property shortlist and visit booking.
+    Uses fpdf2 (pure-Python, no LaTeX). Falls back to plain text if fpdf2 not installed.
+    """
+    from fastapi.responses import Response
+    try:
+        from fpdf import FPDF
+
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", size=16)
+        pdf.cell(0, 12, "REVA Property Shortlist Summary", ln=True, align="C")
+        pdf.ln(4)
+        pdf.set_font("Helvetica", size=11)
+
+        for i, prop in enumerate(request.shortlist, 1):
+            name_ = prop.get("title") or "Property"
+            city = prop.get("city") or ""
+            price = prop.get("price_lakh", "")
+            bhk = prop.get("bhk", "")
+            area = prop.get("area_sqft", "")
+            avail = prop.get("availability", "Ready to Move")
+            pdf.set_font("Helvetica", style="B", size=11)
+            pdf.cell(0, 8, f"{i}. {name_}", ln=True)
+            pdf.set_font("Helvetica", size=10)
+            pdf.cell(0, 7, f"   {bhk}BHK | {city} | Rs {price} Lakh | {area} sq ft | {avail}", ln=True)
+            pdf.ln(2)
+
+        if request.visit_date and request.visit_time:
+            pdf.ln(4)
+            pdf.set_font("Helvetica", style="B", size=11)
+            pdf.cell(0, 8, f"Site Visit: {request.visit_date} at {request.visit_time}", ln=True)
+
+        pdf.ln(6)
+        pdf.set_font("Helvetica", style="I", size=9)
+        pdf.cell(0, 7, "Generated by REVA - Real Estate Voice Agent", ln=True, align="C")
+        pdf.cell(0, 7, "Note: Prices are indicative. Confirm all details during your site visit.", ln=True, align="C")
+
+        pdf_bytes = pdf.output()
+        return Response(
+            content=bytes(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=reva_shortlist.pdf"}
+        )
+    except ImportError:
+        # Graceful fallback: return plain text
+        lines = ["REVA Property Shortlist Summary\n"]
+        for i, prop in enumerate(request.shortlist, 1):
+            lines.append(f"{i}. {prop.get('title')} — {prop.get('bhk')}BHK {prop.get('city')} Rs {prop.get('price_lakh')} Lakh")
+        if request.visit_date:
+            lines.append(f"\nSite Visit: {request.visit_date} at {request.visit_time}")
+        return Response(
+            content="\n".join(lines),
+            media_type="text/plain",
+            headers={"Content-Disposition": "attachment; filename=reva_shortlist.txt"}
+        )

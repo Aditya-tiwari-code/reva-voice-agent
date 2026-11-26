@@ -89,7 +89,14 @@ def fetch_analytics_summary():
         "model_distribution": {"groq_llama3": 30, "gemini_flash": 12},
         "avg_cost_per_call": 0.000095,
         "avg_latency_ms": 280.0,
-        "cost_saved_usd": 0.00365
+        "cost_saved_usd": 0.00365,
+        # Phase 12 analytics
+        "language_distribution": {"english": 14, "hindi": 12, "hinglish": 16},
+        "tts_success_rate": 94.2,
+        "tts_failure_rate": 5.8,
+        "hot_leads": 5,
+        "warm_leads": 8,
+        "cold_leads": 5,
     }
 
 @st.cache_data(ttl=3)
@@ -372,6 +379,62 @@ if page == "Page 1: Executive Overview":
         fig_pie.update_layout(height=340, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(fig_pie, use_container_width=True)
 
+    # Phase 12: Language Distribution + TTS + Lead Category Charts
+    st.markdown("---")
+    l1, l2, l3 = st.columns(3)
+
+    with l1:
+        st.subheader("🌐 Language Distribution")
+        lang_dist = summary.get("language_distribution", {"english": 14, "hindi": 12, "hinglish": 16})
+        df_lang = pd.DataFrame([
+            {"Language": k.capitalize(), "Sessions": v}
+            for k, v in lang_dist.items()
+        ])
+        fig_lang = px.pie(
+            df_lang, values="Sessions", names="Language", hole=0.4,
+            color="Language",
+            color_discrete_map={"English": "#06b6d4", "Hindi": "#f59e0b", "Hinglish": "#10b981"}
+        )
+        fig_lang.update_traces(textposition='inside', textinfo='percent+label')
+        fig_lang.update_layout(height=300, margin=dict(l=10, r=10, t=30, b=10), paper_bgcolor="rgba(0,0,0,0)")
+        st.plotly_chart(fig_lang, use_container_width=True)
+
+    with l2:
+        st.subheader("🔥 Lead Category Breakdown")
+        hot = summary.get("hot_leads", 5)
+        warm = summary.get("warm_leads", 8)
+        cold = summary.get("cold_leads", 5)
+        df_lead_cat = pd.DataFrame([
+            {"Category": "🔥 Hot", "Count": hot},
+            {"Category": "🌤️ Warm", "Count": warm},
+            {"Category": "❄️ Cold", "Count": cold},
+        ])
+        fig_lcat = px.bar(
+            df_lead_cat, x="Category", y="Count", color="Category",
+            color_discrete_sequence=["#ef4444", "#f59e0b", "#06b6d4"],
+            text="Count"
+        )
+        fig_lcat.update_traces(textposition='outside')
+        fig_lcat.update_layout(
+            height=300, showlegend=False, paper_bgcolor="rgba(0,0,0,0)",
+            yaxis_title="Lead Count"
+        )
+        st.plotly_chart(fig_lcat, use_container_width=True)
+
+    with l3:
+        st.subheader("🔊 TTS Voice Success Rate")
+        tts_ok = summary.get("tts_success_rate", 94.2)
+        tts_fail = summary.get("tts_failure_rate", 5.8)
+        fig_tts = go.Figure(go.Pie(
+            labels=["✅ TTS Success", "⚠️ Fallback (Browser)"],
+            values=[tts_ok, tts_fail],
+            hole=0.5,
+            marker_colors=["#10b981", "#f59e0b"]
+        ))
+        fig_tts.update_traces(textposition='inside', textinfo='percent+label')
+        fig_tts.update_layout(height=300, margin=dict(l=10, r=10, t=30, b=10), paper_bgcolor="rgba(0,0,0,0)")
+        st.plotly_chart(fig_tts, use_container_width=True)
+
 
 # ==========================================
 # PAGE 2: LIVE LEADS CRM TABLE & HISTORY
@@ -413,10 +476,27 @@ elif page == "Page 2: Live Leads Table":
         color = colors.get(str(val).lower(), "#94a3b8")
         return f"color: {color}; font-weight: bold;"
 
+    # Phase 12: Lead category from score
+    def score_to_category(score):
+        try:
+            s = int(score)
+        except (TypeError, ValueError):
+            return "❄️ Cold"
+        if s >= 75:
+            return "🔥 Hot"
+        elif s >= 45:
+            return "🌤️ Warm"
+        return "❄️ Cold"
+
+    if "lead_score" in filtered_df.columns:
+        filtered_df = filtered_df.copy()
+        filtered_df["lead_category"] = filtered_df["lead_score"].apply(score_to_category)
+
     # Display Styled Table
     st.markdown(f"**Displaying {len(filtered_df)} of {len(df_leads)} Total Leads**")
     
-    styled_df = filtered_df.style.map(format_status_badge, subset=["status"] if "status" in filtered_df.columns else [])
+    subset_cols = ["status"] if "status" in filtered_df.columns else []
+    styled_df = filtered_df.style.map(format_status_badge, subset=subset_cols)
     st.dataframe(
         styled_df,
         use_container_width=True,

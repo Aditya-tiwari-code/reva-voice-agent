@@ -692,6 +692,27 @@
             border-color: var(--accent-cyan);
         }
 
+        .speed-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--accent-cyan);
+            padding: 3px 6px;
+            border-radius: 8px;
+            font-size: 0.72rem;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .speed-select:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .speed-select option {
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
         .close-btn {
             background: transparent;
             border: none;
@@ -1339,9 +1360,14 @@
                 </div>
             </div>
             <div class="chat-header-controls">
-                <button type="button" id="autoSpeakToggle" class="toggle-btn" title="Toggle Auto-Speak Voice Replies">
-                    🔊 Auto-Speak
+                <button type="button" id="autoSpeakToggle" class="toggle-btn active" title="Toggle Voice Replies (ON/OFF)">
+                    <span id="voiceToggleIcon">🔊</span> <span id="voiceToggleText">Voice ON</span>
                 </button>
+                <select id="voiceSpeedSelect" class="speed-select" title="Voice Speed">
+                    <option value="0.8">0.8x</option>
+                    <option value="1.0" selected>1.0x</option>
+                    <option value="1.2">1.2x</option>
+                </select>
                 <button type="button" id="chatCloseBtn" class="close-btn" title="Close Chat">✕</button>
             </div>
         </div>
@@ -1502,7 +1528,81 @@
     <script>
         // ── 1. GLOBAL STATE & UTILITIES ──────────────────────
         const sessionId = "session_" + Math.random().toString(36).substring(2, 10);
-        let autoSpeakEnabled = false;
+        let autoSpeakEnabled = true;
+        let hasUserInteracted = false;
+        let currentAudio = null;
+
+        function stopAllAudio() {
+            if (currentAudio) {
+                try {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                } catch (_) {}
+                currentAudio = null;
+            }
+            if ("speechSynthesis" in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function speakBrowserFallback(text, language, speed) {
+            if (!("speechSynthesis" in window) || !text) return;
+            window.speechSynthesis.cancel();
+            const clean = text.replace(/https?:\/\/\S+/g, "").replace(/•/g, "").substring(0, 300);
+            const utterance = new SpeechSynthesisUtterance(clean);
+            utterance.rate = speed || 1.0;
+            utterance.pitch = 1.0;
+
+            const voices = window.speechSynthesis.getVoices();
+            const langLower = (language || "").toLowerCase();
+            let matchVoice = null;
+            if (langLower === "hindi" || langLower === "hinglish") {
+                matchVoice = voices.find(v => v.lang.includes("hi"));
+            } else {
+                matchVoice = voices.find(v => v.lang.includes("en-IN") || v.lang.includes("en_IN")) || voices.find(v => v.lang.startsWith("en"));
+            }
+            if (matchVoice) utterance.voice = matchVoice;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function playVoiceReply(audioUrl, spokenText, language) {
+            stopAllAudio();
+            if (!autoSpeakEnabled || !hasUserInteracted) return;
+
+            const speedEl = document.getElementById("voiceSpeedSelect");
+            const speed = parseFloat(speedEl ? speedEl.value : "1.0") || 1.0;
+
+            if (audioUrl) {
+                const audio = new Audio(audioUrl);
+                audio.playbackRate = speed;
+                currentAudio = audio;
+                audio.play().catch(err => {
+                    console.warn("Server audio playback failed, falling back to Web Speech:", err);
+                    speakBrowserFallback(spokenText, language, speed);
+                });
+            } else {
+                speakBrowserFallback(spokenText, language, speed);
+            }
+        }
+
+        function replayMessageAudio(audioUrl, spokenText, language) {
+            hasUserInteracted = true;
+            stopAllAudio();
+            const speedEl = document.getElementById("voiceSpeedSelect");
+            const speed = parseFloat(speedEl ? speedEl.value : "1.0") || 1.0;
+
+            if (audioUrl) {
+                const audio = new Audio(audioUrl);
+                audio.playbackRate = speed;
+                currentAudio = audio;
+                audio.play().catch(() => {
+                    speakBrowserFallback(spokenText, language, speed);
+                });
+            } else {
+                speakBrowserFallback(spokenText, language, speed);
+            }
+        }
 
         function getPropertyIcon(type) {
             const t = (type || "").toLowerCase();
@@ -1638,10 +1738,16 @@
         navTalkBtn.addEventListener("click", openChat);
         chatCloseBtn.addEventListener("click", closeChat);
 
-        // Auto-Speak toggle
+        // Auto-Speak / Voice Reply toggle
         autoSpeakToggle.addEventListener("click", () => {
+            hasUserInteracted = true;
             autoSpeakEnabled = !autoSpeakEnabled;
+            if (!autoSpeakEnabled) stopAllAudio();
             autoSpeakToggle.classList.toggle("active", autoSpeakEnabled);
+            const iconEl = document.getElementById("voiceToggleIcon");
+            const textEl = document.getElementById("voiceToggleText");
+            if (iconEl) iconEl.textContent = autoSpeakEnabled ? "🔊" : "🔇";
+            if (textEl) textEl.textContent = autoSpeakEnabled ? "Voice ON" : "Voice OFF";
         });
 
         // Hero Search Integration: Submitting hero form opens chat and queries REVA
@@ -1699,6 +1805,8 @@
         });
 
         function sendChatMessage(text) {
+            hasUserInteracted = true;
+            stopAllAudio();
             appendUserMessage(text);
             showTyping();
 
@@ -1787,12 +1895,16 @@
                 propCardsHtml += `</div>`;
             }
 
+            const spokenText = data.spoken_text || data.reply_text || data.response_text || "";
+            const audioUrl = data.audio_url || "";
+            const lang = data.language || "english";
+
             row.innerHTML = `
                 <div class="bubble">${escapeHtml(replyText)}${propCardsHtml}</div>
                 <div class="meta-bar">
                     <span>🤖 ${escapeHtml(modelUsed)}</span>
                     ${latency ? `<span>⚡ ${latency}</span>` : ''}
-                    <button class="speak-msg-btn" onclick="speakText('${escapeJs(replyText)}')" title="Speak Reply">🔊 Speak</button>
+                    <button class="speak-msg-btn" onclick="replayMessageAudio('${escapeJs(audioUrl)}', '${escapeJs(spokenText)}', '${escapeJs(lang)}')" title="Replay Voice">🔊 Replay</button>
                 </div>
             `;
 
@@ -1806,8 +1918,8 @@
             }
 
             // Auto-speak if enabled
-            if (autoSpeakEnabled && replyText) {
-                speakText(replyText);
+            if (autoSpeakEnabled && spokenText) {
+                playVoiceReply(audioUrl, spokenText, lang);
             }
         }
 
@@ -1823,6 +1935,8 @@
             let isListening = false;
 
             function startMic(targetInput) {
+                hasUserInteracted = true;
+                stopAllAudio(); // Barge-in: stop REVA voice immediately when user speaks
                 recognition = new SpeechRec();
                 recognition.continuous = true;
                 recognition.interimResults = true;

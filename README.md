@@ -293,3 +293,167 @@ real-estate-voice-agent/
 ├── requirements.txt          # Production Python dependencies
 └── README.md                 # Complete documentation & benchmark results
 ```
+
+
+---
+
+## 🗣️ Voice & TTS Features (Phase 1–3)
+
+REVA now speaks its replies aloud in the **same language** the user used.
+
+### How it works
+1. **Language detection per message** — detects `en / hi / hinglish` and mirrors it throughout the session.
+2. **Structured JSON reply** — LLM returns `{ reply_text, spoken_text, language, intent, slots, next_action }`.
+3. **`spoken_text` rules** — max 2–3 sentences, never reads the full property list, ends with ONE clear action. Hindi replies written in Devanagari for natural TTS.
+4. **gTTS synthesis** — `lang="en", tld="co.in"` for English; `lang="hi"` for Hindi & Hinglish.
+5. **Hash-based audio cache** — repeated phrases served instantly from `data/audio_cache/`.
+6. **Graceful fallback** — if gTTS fails/times out, `tts_failed=True` is returned and the browser uses `speechSynthesis` API.
+
+### New API endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/tts` | POST | Synthesize text → audio URL |
+| `/tts/sentences` | POST | Sentence-by-sentence streaming TTS (Phase 8) |
+| `/tts/filler` | GET | Short filler audio ("Let me check...") played while REVA thinks |
+| `/tts/audio/{filename}` | GET | Serve cached audio file |
+| `/share/whatsapp` | POST | Generate WhatsApp click-to-chat link with shortlist |
+| `/share/pdf` | POST | Download PDF summary of shortlist + visit |
+
+### Chat UI controls
+- **🔊 Voice ON / 🔇 Voice OFF** toggle
+- **⏪ Replay** button on each reply
+- **Speed control**: 0.8× / 1× / 1.2×
+- **Barge-in**: recording stops any playing audio
+
+---
+
+## 💰 Financial Tools (Phase 9) — Computed in Python, NOT by LLM
+
+| Command | Example |
+|---|---|
+| EMI calculator | *"EMI for 60 lakh, 20 years, 8.5%?"* |
+| Affordability | *"My income is 80k, existing EMI 15k, down payment 10 lakh"* |
+| Property comparison | *"Compare option 1 and 2"* |
+| Site visit checklist | *"Give me a checklist for site visit"* |
+| Shortlist | *"Save this one"* / *"Show my shortlist"* |
+
+---
+
+## 📤 Shareable Summary (Phase 10)
+
+After showing properties, REVA can:
+- **WhatsApp share** (`POST /share/whatsapp`) — generates a `wa.me/?text=...` link with the property shortlist pre-filled.
+- **PDF download** (`POST /share/pdf`) — generates a clean PDF summary (requires `fpdf2`; falls back to plain text).
+
+Install fpdf2:
+```bash
+pip install fpdf2
+```
+
+---
+
+## 🔒 Trust & Safety (Phase 11)
+
+- If the DB lacks a detail (RERA, metro distance, school distance), REVA says "I don't have that — please confirm during your visit."
+- If no properties match, REVA honestly says so and suggests nearby alternatives or a broader budget.
+- Calculations (EMI, price per sq ft) are always done in Python — never invented by the LLM.
+
+---
+
+## 📊 Dashboard Analytics (Phase 12)
+
+**Page 1 — Executive Overview** now includes:
+- 🌐 **Language Distribution** pie chart (English / Hindi / Hinglish breakdown)
+- 🔥 **Lead Category** bar chart (Hot / Warm / Cold)
+- 🔊 **TTS Success Rate** donut (server TTS vs browser fallback)
+
+**Page 2 — Live Leads Table** now includes a **Lead Category** column (🔥/🌤️/❄️) derived from the lead score.
+
+---
+
+## 🗣️ Demo Script
+
+### English
+```
+User: I want a 2BHK flat in Ghaziabad or Delhi under 70 lakh.
+REVA (voice + text): Sure! I found a few 2BHK options in Ghaziabad and Delhi. Have a look below, and let me know when you'd like to visit.
+User: EMI for 65 lakh, 20 years, 8.5%?
+REVA: EMI would be ₹56,490/month. Total interest: ₹55.57 lakh. Ready to explore options?
+User: Save this one.
+REVA: Added to your shortlist! You have 1 saved property.
+```
+
+### Hindi
+```
+User: दिल्ली में 3BHK चाहिए, बजट 90 लाख है।
+REVA (आवाज़ + टेक्स्ट): बिल्कुल! दिल्ली में 90 लाख बजट में 3BHK के 2 विकल्प मिले। क्या आप साइट विज़िट करना चाहेंगे?
+```
+
+### Hinglish
+```
+User: Noida mein 2BHK chahiye, budget 50 lakh hai, jaldi chahiye.
+REVA (voice + text): Accha, theek hai! Noida mein 50 lakh budget mein 2BHK ke options dekhte hain. Kab visit karna hai?
+```
+
+---
+
+## 🚀 Setup & Deployment (Phase 7)
+
+### 1. Clone & Install
+```bash
+git clone https://github.com/your-repo/real-estate-voice-agent.git
+cd real-estate-voice-agent
+python -m venv venv
+venv\Scripts\activate   # Windows
+pip install -r requirements.txt
+pip install fpdf2        # Optional: for PDF export
+```
+
+### 2. Configure Environment
+```bash
+cp .env.production.example .env
+# Edit .env and add your GROQ_API_KEY and GEMINI_API_KEY
+```
+
+### 3. Ingest Data & Embed Properties
+```bash
+python scripts/ingest_datasets.py
+python scripts/embed_properties.py
+```
+
+### 4. Start the Backend
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 5. Start the Dashboard
+```bash
+streamlit run app/dashboard.py
+```
+
+### 6. Run Tests (excluding network-dependent tests)
+```bash
+pytest tests/ --ignore=tests/test_benchmarks.py --ignore=tests/test_full_pipeline.py --ignore=tests/test_stt.py --ignore=tests/test_phase1.py -v
+```
+
+### On Another Device (same network)
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Then open: http://<your-ip>:8000
+```
+
+### Audio Cache
+Audio files are cached in `data/audio_cache/` and auto-cleaned on startup (files older than 24h removed). No manual cleanup needed.
+
+---
+
+## 📋 New Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `AUDIO_CACHE_DIR` | `data/audio_cache` | Directory for TTS audio cache |
+| `TTS_TIMEOUT_SECONDS` | `5` | Timeout before browser TTS fallback |
+| `GROQ_API_KEY` | — | Groq API key (required) |
+| `GEMINI_API_KEY` | — | Gemini API key (required) |
+

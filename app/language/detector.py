@@ -16,7 +16,7 @@ class LanguageDetector:
         "kahan", "paas", "sasta", "kam", "dono", "accha", "bhi", "me", "mein",
         "par", "ko", "se", "aur", "ye", "yeh", "wo", "woh", "hoga", "milega",
         "kab", "bhai", "ji", "sabse", "kaunsa", "karo", "liya", "wala", "wali",
-        "rupee", "rupees", "lakh", "crore", "namaste"
+        "namaste", "mujhe"
     }
 
     SIMPLE_INTENTS = {

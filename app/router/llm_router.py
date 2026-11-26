@@ -26,6 +26,215 @@ if not logger.handlers:
     logger.setLevel(logging.INFO)
 
 
+def build_spoken_text(
+    reply_text: str,
+    language: str = "hinglish",
+    properties: Optional[List[Dict[str, Any]]] = None,
+    intent: str = "property_inquiry",
+    city_asked: Optional[str] = None
+) -> str:
+    """
+    Constructs a short, natural spoken line (max 2-3 sentences) suitable for audio TTS playback.
+    Rules:
+    - Never read out bullet lists or long property specs.
+    - Summarize matches ('I found 3 options...').
+    - End with ONE clear question or next step.
+    - For Hindi, write in Devanagari.
+    - For Hinglish, write in natural Devanagari Hindi with simple common English words
+      so that gTTS (lang='hi') pronounces it with natural Indian phonetics.
+    - For English, write in fluent, warm conversational English.
+    """
+    lang = (language or "hinglish").lower().strip()
+    if lang in ["hi", "hindi"]:
+        norm_lang = "hindi"
+    elif lang in ["en", "english"]:
+        norm_lang = "english"
+    else:
+        norm_lang = "hinglish"
+
+    prop_count = len(properties) if properties else 0
+    first_prop_city = ""
+    first_prop_bhk = ""
+    if properties and len(properties) > 0:
+        meta = properties[0].get("metadata") or {}
+        first_prop_city = meta.get("city") or ""
+        bhk_val = meta.get("bhk")
+        if bhk_val:
+            first_prop_bhk = f"{bhk_val}BHK "
+
+    # 1. Greeting
+    if intent == "greeting":
+        if norm_lang == "hindi":
+            return "नमस्ते! मैं REVA हूँ, आपकी रियल एस्टेट AI असिस्टेंट। आप किस शहर या बजट में प्रॉपर्टी देख रहे हैं?"
+        elif norm_lang == "english":
+            return "Hello! I am REVA, your real estate AI assistant. What city, BHK, or budget are you looking for?"
+        else: # Hinglish
+            return "नमस्ते! मैं REVA हूँ, आपकी रियल एस्टेट असिस्टेंट। आप किस शहर या बजट में फ्लैट ढूँढ रहे हैं?"
+
+    # 2. Site Visit Request
+    if intent == "site_visit_request":
+        if norm_lang == "hindi":
+            return "जी बिल्कुल! मैं आपके लिए साइट विज़िट शेड्यूल कर सकती हूँ। क्या आप कल सुबह या शाम का समय पसंद करेंगे?"
+        elif norm_lang == "english":
+            return "Sure! I would be happy to schedule a site visit for you. Would you prefer a morning or evening slot tomorrow?"
+        else:
+            return "जी बिल्कुल! मैं आपके लिए साइट विज़िट प्लान कर सकती हूँ। क्या आप कल सुबह का टाइम प्रिफर करेंगे या शाम का?"
+
+    # 3. Negotiation
+    if intent == "negotiation":
+        if norm_lang == "hindi":
+            return "जी हाँ, बातचीत की गुंजाइश ज़रूर है। मैं हमारे सीनियर मैनेजर से आपकी बात करवा सकती हूँ, क्या आप साइट विज़िट के लिए तैयार हैं?"
+        elif norm_lang == "english":
+            return "Yes, there is definitely room for price discussion. I can connect you with our senior property manager. Would you like to schedule a visit first?"
+        else:
+            return "जी हाँ, प्राइस पर नेगोशिएशन बिल्कुल पॉसिबल है। मैं हमारे सीनियर मैनेजर से बात करवा सकती हूँ, क्या आप पहले साइट विज़िट देखना चाहेंगे?"
+
+    # 4. Comparison
+    if intent == "comparison":
+        if norm_lang == "hindi":
+            return "दोनों ही लोकेशन्स के अपने फायदे हैं। मैंने नीचे तुलना दी है, क्या आप इनमें से किसी को विज़िट करना चाहेंगे?"
+        elif norm_lang == "english":
+            return "Both locations have unique advantages. Check out the comparison below, and let me know if you would like to visit either."
+        else:
+            return "दोनों लोकेशन्स के अपने फायदे हैं। नीचे दिए ऑप्शन्स देखें, और बताइए आप किस प्रोजेक्ट की विज़िट करना चाहेंगे?"
+
+    # 5. Property search results available
+    if prop_count > 0:
+        loc_str = first_prop_city or "आपके पसंदीदा एरिया"
+        loc_en = first_prop_city or "your preferred area"
+        if norm_lang == "hindi":
+            return f"नमस्ते! मुझे {loc_str} में {prop_count} बेहतरीन {first_prop_bhk}विकल्प मिले हैं। नीचे दिए विकल्पों को देखें और बताएं कि आप कब विज़िट करना चाहेंगे।"
+        elif norm_lang == "english":
+            return f"I found {prop_count} verified {first_prop_bhk}options in {loc_en}. Have a look at them below, and let me know when you'd like to visit."
+        else: # Hinglish in Devanagari for natural Indian TTS pronunciation
+            return f"मैंने {loc_str} में {first_prop_bhk}के {prop_count} बढ़िया ऑप्शन्स ढूँढे हैं। आप नीचे देख सकते हैं, क्या आप साइट विज़िट प्लान करना चाहेंगे?"
+
+    # 6. No matching properties (honest statement)
+    if city_asked:
+        if norm_lang == "hindi":
+            return f"माफ़ करें, {city_asked} में अभी कोई मैचिंग लिस्टिंग उपलब्ध नहीं है, लेकिन नजदीकी नोएडा में बेहतरीन विकल्प हैं। क्या मैं नोएडा के विकल्प दिखाऊं?"
+        elif norm_lang == "english":
+            return f"Sorry, I couldn't find an exact match in {city_asked}, but I have great options in nearby Noida. Would you like to check them?"
+        else:
+            return f"माफ़ करें, {city_asked} में अभी कोई डायरेक्ट लिस्टिंग नहीं मिली, लेकिन पास के नोएडा में अच्छे ऑप्शन्स हैं। क्या मैं वो दिखाऊं?"
+
+    # 7. General fallback
+    if norm_lang == "hindi":
+        return "मुझे आपकी ज़रूरत समझ आ गई है। कृपया अपना पसंदीदा एरिया, बजट या बीएचके बताएं ताकि मैं सही विकल्प दिखा सकूँ।"
+    elif norm_lang == "english":
+        return "Got it! Please share your preferred city, budget, or BHK configuration so I can find the best verified properties for you."
+    else:
+        return "मुझे आपकी रिक्वायरमेंट समझ आ गई। कृपया अपनी पसंदीदा लोकेशन, बजट या बीएचके बताइए ताकि मैं बेस्ट ऑप्शन्स दिखा सकूँ।"
+
+
+def parse_structured_llm_response(
+    raw_text: str,
+    default_language: str = "hinglish",
+    default_intent: str = "property_inquiry",
+    properties: Optional[List[Dict[str, Any]]] = None,
+    user_text: str = "",
+    extracted_filters: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Safely parses LLM output into the Phase 1 structured JSON schema:
+    {
+        "reply_text": str,
+        "spoken_text": str,
+        "language": "en | hi | hinglish",
+        "intent": str,
+        "slots": {bhk, city, budget, buy_or_rent, timeline},
+        "next_action": "ask_slot | show_properties | schedule_visit | handoff"
+    }
+    Falls back gracefully to plain text + synthesized spoken line if output is not valid JSON.
+    """
+    filters = extracted_filters or {}
+    slots_base = {
+        "bhk": filters.get("bhk"),
+        "city": filters.get("city"),
+        "budget": filters.get("max_price"),
+        "buy_or_rent": filters.get("transaction_type") or "buy",
+        "timeline": None
+    }
+
+    prop_count = len(properties) if properties else 0
+    default_next_action = "show_properties" if prop_count > 0 else (
+        "schedule_visit" if default_intent == "site_visit_request" else (
+            "handoff" if default_intent == "negotiation" else "ask_slot"
+        )
+    )
+
+    clean_raw = (raw_text or "").strip()
+    parsed_json = None
+
+    # Try extracting JSON object from markdown fences or bare braces
+    json_candidate = clean_raw
+    json_fence_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', clean_raw, re.DOTALL)
+    if json_fence_match:
+        json_candidate = json_fence_match.group(1).strip()
+    else:
+        brace_match = re.search(r'(\{[\s\S]*\})', clean_raw)
+        if brace_match:
+            json_candidate = brace_match.group(1).strip()
+
+    try:
+        import json as _json
+        obj = _json.loads(json_candidate)
+        if isinstance(obj, dict) and "reply_text" in obj:
+            parsed_json = obj
+    except Exception:
+        parsed_json = None
+
+    if parsed_json:
+        reply_text = str(parsed_json.get("reply_text") or "").strip()
+        spoken_text = str(parsed_json.get("spoken_text") or "").strip()
+        lang = str(parsed_json.get("language") or default_language).lower().strip()
+        if lang not in ["en", "hi", "hinglish", "english", "hindi"]:
+            lang = default_language
+        intent = str(parsed_json.get("intent") or default_intent)
+        slots = parsed_json.get("slots")
+        if not isinstance(slots, dict):
+            slots = slots_base
+        else:
+            # Merge with extracted filters
+            for k, v in slots_base.items():
+                if slots.get(k) is None and v is not None:
+                    slots[k] = v
+
+        next_action = str(parsed_json.get("next_action") or default_next_action)
+        if next_action not in ["ask_slot", "show_properties", "schedule_visit", "handoff"]:
+            next_action = default_next_action
+
+        # If spoken_text is empty or too long (>3 sentences or includes bullet points), rebuild cleanly
+        if not spoken_text or "•" in spoken_text or spoken_text.count(".") + spoken_text.count("?") + spoken_text.count("।") > 3:
+            spoken_text = build_spoken_text(reply_text, lang, properties, intent)
+
+        return {
+            "reply_text": reply_text or clean_raw,
+            "spoken_text": spoken_text,
+            "language": lang,
+            "intent": intent,
+            "slots": slots,
+            "next_action": next_action
+        }
+
+    # Fallback when raw LLM response is plain text
+    fallback_spoken = build_spoken_text(
+        reply_text=clean_raw,
+        language=default_language,
+        properties=properties,
+        intent=default_intent
+    )
+
+    return {
+        "reply_text": clean_raw,
+        "spoken_text": fallback_spoken,
+        "language": default_language,
+        "intent": default_intent,
+        "slots": slots_base,
+        "next_action": default_next_action
+    }
+
+
 def generate_natural_conversation(
     user_text: str,
     context: str = "",
@@ -402,19 +611,31 @@ class AdaptiveLLMRouter:
         language: str = "hinglish",
         intent: str = "property_inquiry",
         properties: Optional[List[Dict[str, Any]]] = None,
-        is_default_transaction: bool = False
+        is_default_transaction: bool = False,
+        filters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Routes prompt to Groq or Gemini based on complexity:
+        Routes prompt to Groq or Gemini based on complexity, enforcing Phase 1 structured JSON replies:
         - Simple queries route to Groq Llama 3 first.
         - If Groq fails, properly falls back to Gemini 1.5 Flash.
         - Complex queries route directly to Gemini 1.5 Flash (with Groq fallback).
         - If both remote LLMs fail, generates natural conversational Hindi/Hinglish response.
+        - Parses output into structured schema: reply_text, spoken_text, language, intent, slots, next_action.
         """
         history_str = str(history) if history else "[]"
         system_prompt = (
             "You are REVA, a friendly and professional multilingual real estate AI assistant in India. "
-            "You help customers find and evaluate properties.\n"
+            "You help customers find and evaluate properties.\n\n"
+            "OUTPUT FORMAT INSTRUCTION:\n"
+            "You MUST respond ONLY with a valid JSON object matching this schema:\n"
+            "{\n"
+            "  \"reply_text\": \"full formatted text shown in the chat UI\",\n"
+            "  \"spoken_text\": \"short natural 1-2 sentence line to be spoken aloud. NEVER read out bullet lists or prices of each listing. Summarize and end with ONE clear question or next step. For Hindi or Hinglish, write in Devanagari script for accurate speech synthesis.\",\n"
+            "  \"language\": \"en | hi | hinglish\",\n"
+            "  \"intent\": \"property_inquiry | site_visit_request | price_inquiry | negotiation | comparison | greeting | unknown\",\n"
+            "  \"slots\": {\"bhk\": null, \"city\": null, \"budget\": null, \"buy_or_rent\": null, \"timeline\": null},\n"
+            "  \"next_action\": \"ask_slot | show_properties | schedule_visit | handoff\"\n"
+            "}\n\n"
             "Key guidelines:\n"
             "1. Always respond in the EXACT same language and tone the customer used (Hindi, English, or conversational Hinglish).\n"
             "2. Never say 'As an AI' or 'Fallback response'. Talk naturally like an experienced local real estate advisor.\n"
@@ -431,7 +652,7 @@ class AdaptiveLLMRouter:
         )
 
         start_time = time.time()
-        response_text = ""
+        raw_output = ""
         tokens_used = 0
         model_used_label = "groq_llama3" if complexity == "simple" else "gemini_flash"
         groq_error = None
@@ -443,25 +664,25 @@ class AdaptiveLLMRouter:
             groq_resp, groq_tokens, groq_err = self._call_groq(text, system_prompt)
 
             if groq_resp:
-                response_text = groq_resp
+                raw_output = groq_resp
                 tokens_used = groq_tokens
                 model_used_label = "groq_llama3"
             else:
                 groq_error = groq_err
-                # 3. IF GROQ FAILS, PROPERLY FALLBACK TO GEMINI
+                # Fallback to Gemini
                 print("[ROUTER FALLBACK] Groq API failed. Falling back to Gemini 1.5 Flash...")
                 logger.info("[ROUTER FALLBACK] Groq API failed. Falling back to Gemini 1.5 Flash...")
                 is_fallback = True
 
                 gemini_resp, gemini_tokens, gemini_err = self._call_gemini(text, system_prompt)
                 if gemini_resp:
-                    response_text = gemini_resp
+                    raw_output = gemini_resp
                     tokens_used = gemini_tokens
                     model_used_label = "gemini_flash"
                 else:
                     gemini_error = gemini_err
-                    # 4. NATURAL HINDI/HINGLISH CONVERSATION (NOT A TEMPLATE STRING)
-                    response_text = generate_natural_conversation(
+                    # Natural conversational response
+                    raw_output = generate_natural_conversation(
                         user_text=text,
                         context=context,
                         properties=properties,
@@ -469,7 +690,7 @@ class AdaptiveLLMRouter:
                         intent=intent,
                         is_default_transaction=is_default_transaction
                     )
-                    tokens_used = len((system_prompt + text + response_text).split())
+                    tokens_used = len((system_prompt + text + raw_output).split())
                     model_used_label = "groq_llama3"
 
         else:
@@ -477,7 +698,7 @@ class AdaptiveLLMRouter:
             gemini_resp, gemini_tokens, gemini_err = self._call_gemini(text, system_prompt)
 
             if gemini_resp:
-                response_text = gemini_resp
+                raw_output = gemini_resp
                 tokens_used = gemini_tokens
                 model_used_label = "gemini_flash"
             else:
@@ -488,13 +709,13 @@ class AdaptiveLLMRouter:
 
                 groq_resp, groq_tokens, groq_err = self._call_groq(text, system_prompt)
                 if groq_resp:
-                    response_text = groq_resp
+                    raw_output = groq_resp
                     tokens_used = groq_tokens
                     model_used_label = "groq_llama3"
                 else:
                     groq_error = groq_err
                     # Natural conversational response
-                    response_text = generate_natural_conversation(
+                    raw_output = generate_natural_conversation(
                         user_text=text,
                         context=context,
                         properties=properties,
@@ -502,14 +723,34 @@ class AdaptiveLLMRouter:
                         intent=intent,
                         is_default_transaction=is_default_transaction
                     )
-                    tokens_used = len((system_prompt + text + response_text).split())
+                    tokens_used = len((system_prompt + text + raw_output).split())
                     model_used_label = "gemini_flash"
 
         latency_ms = round((time.time() - start_time) * 1000.0, 2)
         estimated_cost = self.calculate_cost(model_used_label, tokens_used)
 
+        # Parse structured JSON safely with graceful fallback
+        parsed_result = parse_structured_llm_response(
+            raw_text=raw_output,
+            default_language=language,
+            default_intent=intent,
+            properties=properties,
+            user_text=text,
+            extracted_filters=filters
+        )
+
+        reply_text = parsed_result["reply_text"].strip()
+        spoken_text = parsed_result["spoken_text"].strip()
+
         return {
-            "response_text": response_text.strip(),
+            "response_text": reply_text,
+            "reply_text": reply_text,
+            "spoken_text": spoken_text,
+            "language": parsed_result["language"],
+            "intent": parsed_result["intent"],
+            "slots": parsed_result["slots"],
+            "next_action": parsed_result["next_action"],
+            "structured": parsed_result,
             "model_used": model_used_label,
             "tokens_used": tokens_used,
             "latency_ms": latency_ms,
