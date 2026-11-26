@@ -93,7 +93,7 @@ async def health():
     return {"status": "ok", "version": "1.0"}
 
 
-@app.post(\"/tts\")
+@app.post("/tts")
 async def generate_tts(request: TTSRequest):
     """
     Synthesize text to speech using gTTS with Indian accents and audio cache.
