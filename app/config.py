@@ -31,11 +31,11 @@ class Settings:
 
     @property
     def GROQ_MODEL(self) -> str:
-        return os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip().strip('"').strip("'")
+        return os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b").strip().strip('"').strip("'")
 
     @property
     def GEMINI_MODEL(self) -> str:
-        return os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip().strip('"').strip("'")
+        return os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest").strip().strip('"').strip("'")
 
     @property
     def TWILIO_ACCOUNT_SID(self) -> str:

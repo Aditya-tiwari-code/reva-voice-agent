@@ -242,6 +242,36 @@ class TTSService:
                 "error": str(e)
             }
 
+    FILLERS = {
+        "english": "Let me check that for you.",
+        "hindi": "एक सेकंड, मैं देखती हूँ।",
+        "hinglish": "एक सेकंड, मैं देखती हूँ।",
+    }
+
+    def get_filler_audio(self, language: str = "english") -> dict:
+        text = self.FILLERS.get(language, self.FILLERS["english"])
+        try:
+            result = self.generate_speech(text, language=language)
+        except Exception:
+            return {"audio_url": None, "tts_failed": True, "text": text}
+        if not isinstance(result, dict):
+            return {"audio_url": None, "tts_failed": True, "text": text}
+        return {"audio_url": result.get("audio_url"), "tts_failed": result.get("tts_failed", False), "text": text}
+
+    def generate_speech_sentences(self, text: str, language: str = "english") -> list:
+        import re
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?।])\s+", (text or "").strip()) if s.strip()]
+        results = []
+        for sentence in sentences:
+            try:
+                result = self.generate_speech(sentence, language=language)
+            except Exception:
+                result = {"audio_url": None, "tts_failed": True}
+            if not isinstance(result, dict):
+                result = {"audio_url": None, "tts_failed": True}
+            results.append({"sentence": sentence, **result})
+        return results
+
 
 def cleanup_old_audio_files(cache_dir: Path, max_age_hours: int = 24) -> int:
     """
@@ -271,40 +301,6 @@ def split_into_sentences(text: str) -> List[str]:
     # Split on . ! ? and Hindi danda (।)
     parts = re.split(r'(?<=[.!?।])\s+', text.strip())
     return [p.strip() for p in parts if p.strip()]
-
-
-    def generate_speech_sentences(self, text: str, language: str = "english") -> List[Dict[str, Any]]:
-        """
-        Phase 8: Sentence-by-sentence streaming TTS.
-        Splits text into sentences and generates audio for each.
-        Returns a list of per-sentence audio results so the frontend can
-        play sentence 1 while sentence 2 is still generating.
-        """
-        sentences = split_into_sentences(text)
-        results = []
-        for sentence in sentences:
-            result = self.generate_speech(sentence, language=language)
-            results.append({
-                "sentence": sentence,
-                "audio_url": result.get("audio_url"),
-                "tts_failed": result.get("tts_failed", False),
-                "cached": result.get("cached", False)
-            })
-        return results
-
-    def get_filler_audio(self, language: str = "english") -> Dict[str, Any]:
-        """
-        Phase 8: Returns a short filler audio clip (played immediately while retrieval runs).
-        Filler is generated/cached like any other speech.
-        """
-        FILLERS = {
-            "english": "Let me check that for you, one moment.",
-            "hindi": "एक सेकंड, देखती हूं।",
-            "hinglish": "एक second रुकिए, देखती हूं।",
-        }
-        lang_key = (language or "english").lower().strip()
-        filler_text = FILLERS.get(lang_key, FILLERS["english"])
-        return self.generate_speech(filler_text, language=lang_key)
 
 
 # Singleton service instance

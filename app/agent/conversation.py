@@ -218,7 +218,7 @@ class ConversationAgent:
         emi_res = parse_and_calculate_emi(user_text, default_principal_lakh=session_state["slots"].get("budget"))
         afford_res = parse_and_estimate_affordability(user_text)
         is_chk = bool(re.search(r'\b(checklist|documents|paperwork|rera check)\b', lower_user))
-        is_comp = bool(re.search(r'\b(compare|dono me se kaunsa|option 1 and 2|first and second)\b', lower_user)) and len(properties) >= 2
+        is_comp = bool(re.search(r'\b(compare\s+(?:option|both|these|the two|1|first|properties)|dono me se kaunsa|option 1 and 2|first and second|compare them)\b', lower_user)) and len(properties) >= 2
         is_save = bool(re.search(r'\b(shortlist|save this|save option|save flat|add to shortlist)\b', lower_user))
         is_show_shortlist = bool(re.search(r'\b(my shortlist|show shortlist|saved properties|saved flats)\b', lower_user))
 

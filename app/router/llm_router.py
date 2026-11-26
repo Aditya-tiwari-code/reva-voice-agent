@@ -460,11 +460,11 @@ class AdaptiveLLMRouter:
 
     @property
     def groq_model(self) -> str:
-        return self._groq_model or settings.GROQ_MODEL or "llama-3.1-8b-instant"
+        return self._groq_model or settings.GROQ_MODEL or "qwen/qwen3.8-27b"
 
     @property
     def gemini_model(self) -> str:
-        return self._gemini_model or settings.GEMINI_MODEL or "gemini-1.5-flash"
+        return self._gemini_model or settings.GEMINI_MODEL or "gemini-flash-lite-latest"
 
     @property
     def groq_client(self):
@@ -488,7 +488,7 @@ class AdaptiveLLMRouter:
             if key and key.strip():
                 try:
                     import google.generativeai as genai
-                    genai.configure(api_key=key)
+                    genai.configure(api_key=key, transport="rest")
                     self._gemini_client_initialized = True
                 except Exception as e:
                     print(f"[GEMINI INIT ERROR] Failed to configure Gemini: {e}")
